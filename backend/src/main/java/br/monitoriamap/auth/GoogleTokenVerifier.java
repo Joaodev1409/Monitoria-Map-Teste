@@ -40,7 +40,8 @@ public class GoogleTokenVerifier {
                     jwt.getClaimAsString("email"),
                     Boolean.TRUE.equals(jwt.getClaimAsBoolean("email_verified")),
                     jwt.getClaimAsString("name"),
-                    jwt.getClaimAsString("picture"));
+                    jwt.getClaimAsString("picture"),
+                    jwt.getClaimAsString("hd"));
         } catch (JwtException e) {
             throw new LoginInvalidoException("Não foi possível validar o login com Google. Tente novamente.");
         }
@@ -70,6 +71,8 @@ public class GoogleTokenVerifier {
                 : OAuth2TokenValidatorResult.failure(new OAuth2Error("invalid_token", erro, null));
     }
 
-    public record IdentidadeGoogle(String email, boolean emailVerificado, String nome, String fotoUrl) {
+    /** {@code dominioGoogle} é o claim "hd": só vem preenchido para contas de organizações (Google Workspace). */
+    public record IdentidadeGoogle(String email, boolean emailVerificado, String nome, String fotoUrl,
+                                   String dominioGoogle) {
     }
 }

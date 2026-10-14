@@ -1,6 +1,5 @@
 package br.monitoriamap.common;
 
-import br.monitoriamap.auth.EmailNaoVerificadoException;
 import br.monitoriamap.auth.LoginInvalidoException;
 import br.monitoriamap.solicitacao.TransicaoInvalidaException;
 import org.slf4j.Logger;
@@ -60,14 +59,6 @@ public class TratadorGlobalDeErros extends ResponseEntityExceptionHandler {
     @ExceptionHandler(AccessDeniedException.class)
     ProblemDetail acessoNegado(AccessDeniedException e) {
         return problema(HttpStatus.FORBIDDEN, "Acesso negado", "Você não tem permissão para esta ação.");
-    }
-
-    /** O front usa o campo "codigo" para abrir a etapa de digitar o código. */
-    @ExceptionHandler(EmailNaoVerificadoException.class)
-    ProblemDetail emailNaoVerificado(EmailNaoVerificadoException e) {
-        ProblemDetail problema = problema(HttpStatus.FORBIDDEN, "E-mail não confirmado", e.getMessage());
-        problema.setProperty("codigo", "email-nao-verificado");
-        return problema;
     }
 
     @ExceptionHandler(LoginInvalidoException.class)

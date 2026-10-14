@@ -2,20 +2,17 @@ package br.monitoriamap.auth;
 
 import br.monitoriamap.auth.dto.LoginGoogleRequest;
 import br.monitoriamap.auth.dto.LoginResponse;
-import br.monitoriamap.auth.dto.Pedidos;
 import br.monitoriamap.config.AppProperties;
 import br.monitoriamap.usuario.UsuarioDTO;
 import br.monitoriamap.usuario.UsuarioService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -36,7 +33,7 @@ public class AuthController {
         this.config = propriedades.auth();
     }
 
-    /** Configuração pública que a tela de login lê (domínios aceitos e se o Google está ligado). */
+    /** Configuração pública que a tela de login lê: o Client ID do Google e os domínios aceitos. */
     @GetMapping("/config")
     public ConfiguracaoLogin configuracao() {
         return new ConfiguracaoLogin(config.googleClientId(), auth.dominiosPermitidos());
@@ -51,42 +48,12 @@ public class AuthController {
         return new Sessao(usuario == null ? null : usuarios.buscar(usuario.id()));
     }
 
-    @PostMapping("/cadastro")
-    @ResponseStatus(HttpStatus.ACCEPTED)
-    public Pedidos.Aviso cadastrar(@Valid @RequestBody Pedidos.Cadastro pedido) {
-        return auth.cadastrar(pedido);
-    }
-
-    @PostMapping("/confirmar")
-    public ResponseEntity<LoginResponse> confirmar(@Valid @RequestBody Pedidos.Confirmar pedido) {
-        return responder(auth.confirmarCadastro(pedido));
-    }
-
-    @PostMapping("/entrar")
-    public ResponseEntity<LoginResponse> entrar(@Valid @RequestBody Pedidos.Entrar pedido) {
-        return responder(auth.entrar(pedido));
-    }
-
-    @PostMapping("/reenviar-codigo")
-    @ResponseStatus(HttpStatus.ACCEPTED)
-    public Pedidos.Aviso reenviarCodigo(@Valid @RequestBody Pedidos.Reenviar pedido) {
-        return auth.reenviarCodigo(pedido);
-    }
-
-    @PostMapping("/esqueci-senha")
-    @ResponseStatus(HttpStatus.ACCEPTED)
-    public Pedidos.Aviso esqueciSenha(@Valid @RequestBody Pedidos.SoEmail pedido) {
-        return auth.esqueciSenha(pedido);
-    }
-
-    @PostMapping("/redefinir-senha")
-    public ResponseEntity<LoginResponse> redefinirSenha(@Valid @RequestBody Pedidos.RedefinirSenha pedido) {
-        return responder(auth.redefinirSenha(pedido));
-    }
-
     @PostMapping("/google")
     public ResponseEntity<LoginResponse> entrarComGoogle(@Valid @RequestBody LoginGoogleRequest pedido) {
-        return responder(auth.entrarComGoogle(pedido.credential()));
+        AuthService.Login login = auth.entrarComGoogle(pedido.credential());
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, cookie.criar(login.token()).toString())
+                .body(new LoginResponse(login.usuario(), login.token().expiraEm()));
     }
 
     @PostMapping("/sair")
@@ -95,12 +62,6 @@ public class AuthController {
             auth.sair(usuario.id());
         }
         return ResponseEntity.noContent().header(HttpHeaders.SET_COOKIE, cookie.apagar().toString()).build();
-    }
-
-    private ResponseEntity<LoginResponse> responder(AuthService.Login login) {
-        return ResponseEntity.ok()
-                .header(HttpHeaders.SET_COOKIE, cookie.criar(login.token()).toString())
-                .body(new LoginResponse(login.usuario(), login.token().expiraEm()));
     }
 
     public record Sessao(UsuarioDTO usuario) {

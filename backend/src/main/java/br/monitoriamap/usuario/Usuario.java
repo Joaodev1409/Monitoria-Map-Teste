@@ -45,31 +45,8 @@ public class Usuario {
     /** Tokens emitidos antes deste instante não valem mais (atualizado ao sair da conta). */
     private Instant sessoesValidasDesde;
 
-    /** Hash BCrypt da senha (nulo para quem só entra pelo Google). A senha em si nunca é guardada. */
-    private String senhaHash;
-
-    /** Só vira true depois que a pessoa digita o código enviado ao e-mail institucional. */
-    @Column(nullable = false)
-    private boolean emailVerificado;
-
     protected Usuario() {
         // exigido pelo JPA
-    }
-
-    public void definirSenhaHash(String senhaHash) {
-        this.senhaHash = Objects.requireNonNull(senhaHash);
-    }
-
-    public void confirmarEmail() {
-        this.emailVerificado = true;
-    }
-
-    public String getSenhaHash() {
-        return senhaHash;
-    }
-
-    public boolean isEmailVerificado() {
-        return emailVerificado;
     }
 
     public Usuario(String nome, String email, Papel papel, Instant criadoEm) {

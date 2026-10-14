@@ -14,8 +14,6 @@ import org.springframework.http.ProblemDetail;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.AnonymousAuthenticationFilter;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
@@ -83,12 +81,6 @@ public class SecurityConfig {
                 .addFilterBefore(limite, CsrfFilter.class)
                 .addFilterBefore(sessao, AnonymousAuthenticationFilter.class);
         return http.build();
-    }
-
-    /** BCrypt: lento de propósito, com sal embutido. Usado para senhas e para os códigos de verificação. */
-    @Bean
-    public PasswordEncoder senhas() {
-        return new BCryptPasswordEncoder();
     }
 
     /** Os dois filtros já rodam dentro da cadeia do Spring Security; isto evita que o Boot os registre de novo. */

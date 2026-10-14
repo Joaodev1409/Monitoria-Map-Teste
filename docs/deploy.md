@@ -19,9 +19,24 @@ API, em vez de o React chamar o domínio do Render diretamente.
 As tabelas são criadas sozinhas pelo Flyway na primeira subida da API.
 
 ## 2. Login: Google
-1. Em https://console.cloud.google.com/apis/credentials crie um **ID do cliente OAuth → Aplicativo da Web**.
-2. Em **Origens JavaScript autorizadas**, adicione a URL da Vercel (ex.: `https://monitoria-map.vercel.app`).
-3. Guarde o *Client ID*. O *Client secret* não é usado.
+
+O login é só com a conta Google da UEPB. Para isso o sistema precisa de um **Client ID** (gratuito, sem cartão).
+Faça com uma conta Google pessoal; se a da UEPB não deixar criar projetos, não tem problema, quem entra no
+sistema continua sendo a conta da UEPB.
+
+1. Abra https://console.cloud.google.com e crie um projeto (ex.: `monitoria-map`).
+2. Menu **APIs e serviços → Tela de consentimento OAuth** (ou "Google Auth Platform → Branding"):
+   - Tipo de usuário: **Externo**; nome do app: `Monitoria MAP`; e-mails de suporte e contato: o seu.
+   - Escopos: não precisa adicionar nada (o padrão `email`, `profile` e `openid` basta).
+   - Em **Público-alvo**, clique em **Publicar app**. Com só esses escopos, o Google não exige revisão;
+     sem publicar, só os e-mails listados como "usuários de teste" conseguem entrar.
+3. Menu **APIs e serviços → Credenciais → Criar credenciais → ID do cliente OAuth**:
+   - Tipo: **Aplicativo da Web**.
+   - **Origens JavaScript autorizadas**: `http://localhost:3000`, `http://localhost:5173` e, quando publicar,
+     a URL da Vercel (ex.: `https://monitoria-map.vercel.app`).
+   - Não precisa de "URIs de redirecionamento".
+4. Copie o **ID do cliente** (termina em `.apps.googleusercontent.com`) para `APP_AUTH_GOOGLE_CLIENT_ID`.
+   O *Client secret* não é usado.
 
 ## 3. API: Render (exemplo)
 1. **New → Web Service**, aponte para o repositório e escolha **Docker** com *Root directory* `backend`.
@@ -33,12 +48,11 @@ As tabelas são criadas sozinhas pelo Flyway na primeira subida da API.
 | `APP_SESSAO_SEGREDO` | resultado de `openssl rand -base64 48` |
 | `APP_AUTH_GOOGLE_CLIENT_ID` | o Client ID |
 | `APP_AUTH_ADMIN_EMAILS` | seu e-mail |
-| `APP_AUTH_DOMINIOS_PERMITIDOS` | opcional, ex.: `aluno.uepb.edu.br` |
+| `APP_AUTH_DOMINIOS_PERMITIDOS` | opcional; o padrão já é `aluno.uepb.edu.br,servidor.uepb.edu.br` |
 | `APP_URL_FRONTEND` e `APP_CORS_ORIGENS` | a URL da Vercel |
 | `APP_EMAIL_HABILITADO` e `SPRING_MAIL_*` | opcional (veja `.env.example`) |
 
-3. **Não** defina `SPRING_PROFILES_ACTIVE=dev`. Sem esse perfil, o Swagger
-   simplesmente não existem.
+3. **Não** defina `SPRING_PROFILES_ACTIVE=dev`. Sem esse perfil, o Swagger simplesmente não existe.
 4. *Health check path*: `/actuator/health`.
 
 > No plano gratuito do Render a API "dorme" após uns 15 min sem uso, e a primeira requisição depois disso
@@ -55,11 +69,11 @@ O `vercel.json` também:
 - envia os cabeçalhos de segurança (Content-Security-Policy, nosniff, Referrer-Policy etc.), os mesmos do `nginx.conf`.
 
 ## Checklist final
-- [ ] A API sobe **sem** o perfil `dev` e com o e-mail ligado (`APP_EMAIL_HABILITADO=true` + `SPRING_MAIL_*`):
-      sem e-mail ninguém recebe o código para ativar a conta
+- [ ] A API sobe **sem** o perfil `dev`
 - [ ] `/swagger-ui.html` responde 404 em produção
-- [ ] Criar a sua conta com o e-mail admin e confirmar o código que chega no e-mail
+- [ ] A URL da Vercel está nas "Origens JavaScript autorizadas" do Client ID
+- [ ] Entrar com a conta da UEPB do e-mail admin (você vira admin) e tentar com um Gmail pessoal (deve recusar)
 - [ ] No DevTools → Application → Cookies: `monitoria_sessao` aparece como **HttpOnly** e **Secure**
 - [ ] No DevTools → Application → Local Storage: nenhum token
 - [ ] Promover os monitores em **Gestão → Pessoas**
-- [ ] Abrir um pedido de teste e conferir que a fila, o som e o e-mail funcionam
+- [ ] Abrir um pedido de teste e conferir que a fila e o som funcionam (e o e-mail, se configurado)

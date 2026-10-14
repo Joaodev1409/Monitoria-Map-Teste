@@ -21,8 +21,8 @@ Observer, Strategy, Facade...).
   ou devolve à fila.
 - **Admin:** relatórios (espera média, duração média, por monitor, por tópico, por semana), export CSV,
   promoção de alunos a monitor e cadastro de tópicos.
-- Conta com e-mail institucional (@aluno.uepb.edu.br ou @servidor.uepb.edu.br) e senha, confirmada por um
-  código enviado ao e-mail, com "Esqueci a senha"; e-mails de aviso e modo claro/escuro.
+- Login com a conta Google da UEPB (@aluno.uepb.edu.br ou @servidor.uepb.edu.br), sem cadastro nem senha
+  própria; e-mails de aviso e modo claro/escuro.
 - Atendimento online: o aluno ou o monitor responsável colocam o link da chamada a qualquer momento.
 
 ## Tecnologias
@@ -49,10 +49,17 @@ docker compose up --build
 | API + Swagger | http://localhost:8080/swagger-ui.html |
 | Caixa de e-mails de teste (Mailpit) | http://localhost:8025 |
 
-Crie uma conta com qualquer e-mail @aluno.uepb.edu.br: o código de confirmação chega no **Mailpit**
-(http://localhost:8025), que guarda os e-mails localmente sem enviar nada. Para virar admin, coloque o seu
-e-mail em `APP_AUTH_ADMIN_EMAILS` no `.env` antes de criar a conta; depois, em **Gestão → Pessoas**, promova
-quem for monitor. Para testar aluno e monitor juntos, use duas janelas (uma anônima).
+Antes, crie o Client ID do Google (uns 10 minutos, veja [docs/deploy.md](docs/deploy.md#2-login-google)) e
+coloque no `.env` junto com o seu e-mail de admin:
+
+```
+APP_AUTH_GOOGLE_CLIENT_ID=123456-abc.apps.googleusercontent.com
+APP_AUTH_ADMIN_EMAILS=seu.nome@aluno.uepb.edu.br
+```
+
+Entre com a sua conta da UEPB: você vira admin. Em **Gestão → Pessoas**, promova quem for monitor depois
+que essa pessoa entrar uma vez. Os e-mails de aviso caem no **Mailpit** (http://localhost:8025), que guarda
+tudo localmente sem enviar nada.
 
 ### Opção 2: desenvolvimento (recarrega ao salvar)
 
@@ -93,8 +100,8 @@ de segurança listadas abaixo.
 | Token de sessão | Cookie `HttpOnly`, `Secure` e `SameSite=Lax`. O JavaScript não lê o token e não há nada no Local Storage |
 | CSRF | Todo POST/PATCH exige o cabeçalho `X-XSRF-TOKEN` igual ao cookie `XSRF-TOKEN` |
 | Sair | Invalida no servidor todos os tokens emitidos antes, mesmo se alguém tiver copiado o cookie |
-| Cadastro | Só e-mail institucional; a conta só é ativada com o código de 6 números enviado ao e-mail (vale 15 min, 5 tentativas) |
-| Senhas | Guardadas com BCrypt; "e-mail ou senha incorretos" é a mesma resposta nos dois casos |
+| Quem entra | Só contas Google da organização UEPB: confere o domínio do e-mail **e** o claim `hd` do token (Gmail pessoal é recusado) |
+| Senhas | Não existem no sistema: nada para vazar, nada para "esqueci a senha" |
 | Dados pessoais | Respostas mostram só nome e foto de outras pessoas; e-mails ficam com o próprio usuário e o admin |
 | Pedido de outro aluno | Responde 404 (nem confirma que existe) |
 | Abuso | Limite de tentativas de login por minuto, de pedidos por hora e de pedidos ativos por aluno |
@@ -111,12 +118,12 @@ Todas as opções estão comentadas em [.env.example](.env.example). As principa
 | `APP_AUTH_GOOGLE_CLIENT_ID` | Liga o botão "Continuar com o Google" |
 | `APP_AUTH_DOMINIOS_PERMITIDOS` | Ex.: `aluno.uepb.edu.br,servidor.uepb.edu.br` |
 | `APP_AUTH_ADMIN_EMAILS` | Quem já entra como administrador |
-| `SPRING_PROFILES_ACTIVE=dev` | Swagger (e códigos no log se o e-mail estiver desligado). **Só no seu computador** |
+| `SPRING_PROFILES_ACTIVE=dev` | Swagger. **Só no seu computador** |
 | `APP_EMAIL_HABILITADO` + `SPRING_MAIL_*` | Envio de e-mails (ex.: Gmail com senha de app) |
 
 ### Primeiro acesso em produção
-1. Configure o envio de e-mail (obrigatório: é por ele que chegam os códigos) e defina `APP_AUTH_ADMIN_EMAILS`
-   com o seu e-mail institucional. Crie a sua conta e confirme o código: você vira admin.
+1. Defina `APP_AUTH_GOOGLE_CLIENT_ID` e `APP_AUTH_ADMIN_EMAILS` (seu e-mail institucional) e entre com a
+   sua conta da UEPB: você vira admin.
 2. Peça aos monitores para entrarem uma vez. Em **Pessoas**, mude o papel deles para *Monitor*.
 3. Ajuste os **Tópicos** às listas e unidades do semestre.
 
@@ -128,7 +135,7 @@ Veja [docs/deploy.md](docs/deploy.md) para publicar (Vercel + Render + Neon, tud
 backend/src/main/java/br/monitoriamap/
 ├── solicitacao/   domínio principal: entidade, estados (State), serviço, API
 ├── notificacao/   Observer + Strategy: e-mail e tempo real (SSE)
-├── auth/          cadastro, senha, código por e-mail, sessão em cookie, regras de segurança
+├── auth/          login Google da UEPB, sessão em cookie, CSRF, regras de segurança
 ├── usuario/  topico/  relatorio/
 ├── config/        propriedades tipadas, relógio, Swagger
 └── common/        exceções e tratamento global de erros (ProblemDetail)
