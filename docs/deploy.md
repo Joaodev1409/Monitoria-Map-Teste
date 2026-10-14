@@ -31,8 +31,10 @@ git push -u origin main
 
 ## 2. Banco: Neon
 
-1. Em https://neon.tech entre com o GitHub e crie um projeto (`monitoria-map`, região **AWS São Paulo**
-   se houver, ou a mais próxima).
+1. Em https://neon.tech entre com o GitHub e crie um projeto (`monitoria-map`) na região
+   **AWS US East 1 (N. Virginia)**, a mesma da API no Render (que não tem servidor no Brasil).
+   O que mais pesa é a distância API ↔ banco: cada clique faz várias consultas. Deixe o **Neon Auth desligado**
+   (o login é o Google da UEPB, feito pelo próprio sistema).
 2. Em **Connect**, escolha a visão de parâmetros e anote **host**, **database**, **user** e **password**.
 3. Monte a URL JDBC (as tabelas são criadas sozinhas pela API na primeira subida):
 

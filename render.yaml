@@ -9,7 +9,8 @@ services:
     rootDir: backend
     dockerfilePath: ./Dockerfile
     plan: free
-    region: oregon
+    # Mesma região do banco no Neon (AWS US East 1 / N. Virginia): API e banco lado a lado.
+    region: virginia
     healthCheckPath: /actuator/health
     envVars:
       # Gerado pelo Render: aleatório, só existe lá, nunca no Git.
