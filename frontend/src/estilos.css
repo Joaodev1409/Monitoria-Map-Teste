@@ -1739,6 +1739,31 @@ table.tabela {
   background: var(--borda);
 }
 
+/* ============================ Texto longo (política de privacidade) ============================ */
+.texto-longo p,
+.texto-longo ul {
+  margin: 14px 0 0;
+  max-width: 68ch;
+}
+
+.texto-longo ul {
+  padding-left: 20px;
+}
+
+.texto-longo li + li {
+  margin-top: 8px;
+}
+
+.texto-longo h2 {
+  margin-top: 30px;
+}
+
+.rodape-login {
+  margin-top: 28px;
+  font-size: 14px;
+  color: var(--tinta-2);
+}
+
 /* ============================ Avisos ============================ */
 .avisos {
   position: fixed;

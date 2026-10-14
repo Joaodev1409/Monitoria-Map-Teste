@@ -43,6 +43,7 @@ app:
     google-client-id: ${APP_AUTH_GOOGLE_CLIENT_ID:}
     dominios-permitidos: ${APP_AUTH_DOMINIOS_PERMITIDOS:aluno.uepb.edu.br,servidor.uepb.edu.br}
     admin-emails: ${APP_AUTH_ADMIN_EMAILS:}
+    contato-email: ${APP_CONTATO_EMAIL:}
   sessao:
     segredo: ${APP_SESSAO_SEGREDO:}
     validade: ${APP_SESSAO_VALIDADE:8h}

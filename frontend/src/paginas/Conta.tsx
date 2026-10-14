@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { LogOut, Monitor, Moon, Sun } from 'lucide-react';
 import { podeAtender, useAutenticacao, useUsuario } from '../auth/Autenticacao';
 import { Avatar, Cabecalho } from '../componentes/Basicos';
@@ -75,7 +76,7 @@ export function Conta() {
         {saindo ? 'Saindo…' : 'Sair da conta'}
       </button>
       <p className="secundario" style={{ fontSize: 14, marginTop: 10 }}>
-        Sair encerra a sessão em todos os aparelhos.
+        Sair encerra a sessão em todos os aparelhos. <Link to="/privacidade">Política de privacidade</Link>
       </p>
     </div>
   );

@@ -36,7 +36,7 @@ public class AuthController {
     /** Configuração pública que a tela de login lê: o Client ID do Google e os domínios aceitos. */
     @GetMapping("/config")
     public ConfiguracaoLogin configuracao() {
-        return new ConfiguracaoLogin(config.googleClientId(), auth.dominiosPermitidos());
+        return new ConfiguracaoLogin(config.googleClientId(), auth.dominiosPermitidos(), config.contatoEmail());
     }
 
     /**
@@ -67,6 +67,6 @@ public class AuthController {
     public record Sessao(UsuarioDTO usuario) {
     }
 
-    public record ConfiguracaoLogin(String googleClientId, List<String> dominiosPermitidos) {
+    public record ConfiguracaoLogin(String googleClientId, List<String> dominiosPermitidos, String contatoEmail) {
     }
 }

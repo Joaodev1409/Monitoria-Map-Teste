@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
 import { GoogleLogin, GoogleOAuthProvider } from '@react-oauth/google';
 import { Eye, ShieldCheck } from 'lucide-react';
 import { api } from '../api/cliente';
@@ -86,6 +87,10 @@ export function Login() {
             </div>
           )}
         </div>
+
+        <p className="rodape-login">
+          Projeto da monitoria de MAP, não oficial da UEPB · <Link to="/privacidade">Política de privacidade</Link>
+        </p>
       </section>
 
       <ExemploAoVivo />

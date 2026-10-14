@@ -71,6 +71,7 @@ export interface LoginResposta {
 export interface ConfiguracaoLogin {
   googleClientId: string | null;
   dominiosPermitidos: string[];
+  contatoEmail: string | null;
 }
 
 export interface Contagem {

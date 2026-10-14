@@ -1,0 +1,37 @@
+# Blueprint do Render: cria a API do Monitoria MAP a partir deste repositório.
+# No Render: New → Blueprint → escolha o repositório. Os valores marcados com "sync: false"
+# o Render pergunta na hora (veja docs/deploy.md); o segredo da sessão ele gera sozinho.
+
+services:
+  - type: web
+    name: monitoria-map-api
+    runtime: docker
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    plan: free
+    region: oregon
+    healthCheckPath: /actuator/health
+    envVars:
+      # Gerado pelo Render: aleatório, só existe lá, nunca no Git.
+      - key: APP_SESSAO_SEGREDO
+        generateValue: true
+      # Banco no Neon (jdbc:postgresql://<host>/<banco>?sslmode=require)
+      - key: SPRING_DATASOURCE_URL
+        sync: false
+      - key: SPRING_DATASOURCE_USERNAME
+        sync: false
+      - key: SPRING_DATASOURCE_PASSWORD
+        sync: false
+      # Login com Google da UEPB
+      - key: APP_AUTH_GOOGLE_CLIENT_ID
+        sync: false
+      - key: APP_AUTH_ADMIN_EMAILS
+        sync: false
+      # Endereço do site na Vercel (ex.: https://monitoria-map.vercel.app)
+      - key: APP_URL_FRONTEND
+        sync: false
+      - key: APP_CORS_ORIGENS
+        sync: false
+      # E-mail mostrado na política de privacidade para pedidos de exclusão (LGPD)
+      - key: APP_CONTATO_EMAIL
+        sync: false

@@ -1,79 +1,111 @@
 # Publicando o Monitoria MAP
 
-A Vercel hospeda só sites estáticos e funções JavaScript; ela **não roda Spring Boot**. Por isso o
-sistema é publicado em três partes, todas com plano gratuito:
+Tudo em plano gratuito, sem cartão. Leva uns 30–40 minutos na primeira vez.
 
 ```
-Navegador ──▶ Vercel (React + rewrite /api) ──▶ Render / Railway / Fly.io (API, Docker) ──▶ Neon (PostgreSQL)
+Navegador ──▶ Vercel (site + repasse de /api) ──▶ Render (API, Docker) ──▶ Neon (PostgreSQL)
 ```
 
-**Importante:** o navegador deve enxergar front e API na **mesma origem**. A sessão é um cookie
-HttpOnly com `SameSite=Lax` e todo POST exige o token CSRF lido de um cookie; com domínios
-diferentes, nada disso funciona (e não deve funcionar). Por isso a Vercel repassa `/api/*` para a
-API, em vez de o React chamar o domínio do Render diretamente.
+A Vercel não roda Java, por isso a API fica no Render. Para o navegador, porém, tudo parece um site só:
+a Vercel repassa `/api/*` para o Render. Isso é necessário porque a sessão é um cookie que só vale na
+mesma origem (é o que impede outros sites de agir em nome do aluno).
 
-## 1. Banco: Neon
-1. Crie um projeto em https://neon.tech e copie os dados de conexão.
-2. Monte a URL JDBC: `jdbc:postgresql://<host>/<banco>?sslmode=require`.
+Siga na ordem: cada passo usa um endereço do anterior.
 
-As tabelas são criadas sozinhas pelo Flyway na primeira subida da API.
+---
 
-## 2. Login: Google
+## 1. GitHub
 
-O login é só com a conta Google da UEPB. Para isso o sistema precisa de um **Client ID** (gratuito, sem cartão).
-Faça com uma conta Google pessoal; se a da UEPB não deixar criar projetos, não tem problema, quem entra no
-sistema continua sendo a conta da UEPB.
+Render e Vercel publicam a partir do repositório.
 
-1. Abra https://console.cloud.google.com e crie um projeto (ex.: `monitoria-map`).
-2. Menu **APIs e serviços → Tela de consentimento OAuth** (ou "Google Auth Platform → Branding"):
-   - Tipo de usuário: **Externo**; nome do app: `Monitoria MAP`; e-mails de suporte e contato: o seu.
-   - Escopos: não precisa adicionar nada (o padrão `email`, `profile` e `openid` basta).
-   - Em **Público-alvo**, clique em **Publicar app**. Com só esses escopos, o Google não exige revisão;
-     sem publicar, só os e-mails listados como "usuários de teste" conseguem entrar.
-3. Menu **APIs e serviços → Credenciais → Criar credenciais → ID do cliente OAuth**:
-   - Tipo: **Aplicativo da Web**.
-   - **Origens JavaScript autorizadas**: `http://localhost:3000`, `http://localhost:5173` e, quando publicar,
-     a URL da Vercel (ex.: `https://monitoria-map.vercel.app`).
-   - Não precisa de "URIs de redirecionamento".
-4. Copie o **ID do cliente** (termina em `.apps.googleusercontent.com`) para `APP_AUTH_GOOGLE_CLIENT_ID`.
-   O *Client secret* não é usado.
+1. Em https://github.com/new crie um repositório (pode ser **privado**) chamado `monitoria-map`, **vazio**
+   (sem README, sem .gitignore).
+2. Na pasta do projeto:
 
-## 3. API: Render (exemplo)
-1. **New → Web Service**, aponte para o repositório e escolha **Docker** com *Root directory* `backend`.
-2. Variáveis de ambiente:
+```bash
+git remote add origin https://github.com/SEU-USUARIO/monitoria-map.git
+git push -u origin main
+```
+
+> O `.env` (com o Client ID e seu e-mail) não vai para o GitHub: está no `.gitignore`.
+
+## 2. Banco: Neon
+
+1. Em https://neon.tech entre com o GitHub e crie um projeto (`monitoria-map`, região **AWS São Paulo**
+   se houver, ou a mais próxima).
+2. Em **Connect**, escolha a visão de parâmetros e anote **host**, **database**, **user** e **password**.
+3. Monte a URL JDBC (as tabelas são criadas sozinhas pela API na primeira subida):
+
+```
+jdbc:postgresql://HOST/DATABASE?sslmode=require
+```
+
+## 3. API: Render
+
+1. Em https://render.com entre com o GitHub.
+2. **New → Blueprint**, escolha o repositório `monitoria-map`. O Render lê o `render.yaml` e pergunta:
 
 | Variável | Valor |
 |---|---|
-| `SPRING_DATASOURCE_URL` / `_USERNAME` / `_PASSWORD` | dados do Neon |
-| `APP_SESSAO_SEGREDO` | resultado de `openssl rand -base64 48` |
-| `APP_AUTH_GOOGLE_CLIENT_ID` | o Client ID |
-| `APP_AUTH_ADMIN_EMAILS` | seu e-mail |
-| `APP_AUTH_DOMINIOS_PERMITIDOS` | opcional; o padrão já é `aluno.uepb.edu.br,servidor.uepb.edu.br` |
-| `APP_URL_FRONTEND` e `APP_CORS_ORIGENS` | a URL da Vercel |
-| `APP_EMAIL_HABILITADO` e `SPRING_MAIL_*` | opcional (veja `.env.example`) |
+| `SPRING_DATASOURCE_URL` | a URL JDBC do passo 2 |
+| `SPRING_DATASOURCE_USERNAME` / `_PASSWORD` | user e password do Neon |
+| `APP_AUTH_GOOGLE_CLIENT_ID` | o mesmo Client ID do `.env` |
+| `APP_AUTH_ADMIN_EMAILS` | seu e-mail @aluno.uepb.edu.br |
+| `APP_URL_FRONTEND` e `APP_CORS_ORIGENS` | por enquanto `https://monitoria-map.vercel.app` (ajuste no passo 5 se a Vercel der outro nome) |
+| `APP_CONTATO_EMAIL` | e-mail para pedidos de exclusão de dados (aparece na política de privacidade) |
 
-3. **Não** defina `SPRING_PROFILES_ACTIVE=dev`. Sem esse perfil, o Swagger simplesmente não existe.
-4. *Health check path*: `/actuator/health`.
+   `APP_SESSAO_SEGREDO` o Render gera sozinho.
+3. Clique em **Apply**. O primeiro build leva uns 5–10 minutos.
+4. Anote o endereço da API (ex.: `https://monitoria-map-api.onrender.com`) e confira
+   `https://monitoria-map-api.onrender.com/actuator/health` → `{"status":"UP"}`.
 
-> No plano gratuito do Render a API "dorme" após uns 15 min sem uso, e a primeira requisição depois disso
-> demora uns 30–60 s. O front reconecta o tempo real sozinho. Para horários de monitoria, uma alternativa
-> é um serviço de *ping* (ex.: UptimeRobot) chamando `/actuator/health` a cada 10 minutos.
+> No plano gratuito a API "dorme" após ~15 min sem uso; o primeiro acesso depois disso demora 30–60 s
+> (o site reconecta sozinho). Para os horários de monitoria, crie um monitor gratuito no
+> https://uptimerobot.com chamando o `/actuator/health` a cada 10 minutos.
 
-## 4. Front-end: Vercel
-1. Em `frontend/vercel.json`, troque `https://SUA-API.onrender.com` pela URL real da API.
-2. **Add New → Project**, escolha o repositório e defina *Root directory* `frontend` (o Vite é detectado sozinho).
-3. Não é preciso nenhuma variável de ambiente no front.
+## 4. Site: Vercel
 
-O `vercel.json` também:
-- faz as rotas do React (ex.: `/monitor/fila`) funcionarem ao recarregar a página;
-- envia os cabeçalhos de segurança (Content-Security-Policy, nosniff, Referrer-Policy etc.), os mesmos do `nginx.conf`.
+1. No arquivo `frontend/vercel.json`, troque `https://SUA-API.onrender.com` pelo endereço da API do
+   passo 3, faça commit e push:
 
-## Checklist final
-- [ ] A API sobe **sem** o perfil `dev`
-- [ ] `/swagger-ui.html` responde 404 em produção
-- [ ] A URL da Vercel está nas "Origens JavaScript autorizadas" do Client ID
-- [ ] Entrar com a conta da UEPB do e-mail admin (você vira admin) e tentar com um Gmail pessoal (deve recusar)
-- [ ] No DevTools → Application → Cookies: `monitoria_sessao` aparece como **HttpOnly** e **Secure**
-- [ ] No DevTools → Application → Local Storage: nenhum token
-- [ ] Promover os monitores em **Gestão → Pessoas**
-- [ ] Abrir um pedido de teste e conferir que a fila e o som funcionam (e o e-mail, se configurado)
+```bash
+git commit -am "Aponta a Vercel para a API do Render"
+```
+
+```bash
+git push
+```
+
+2. Em https://vercel.com entre com o GitHub → **Add New → Project** → escolha o repositório.
+3. Em **Root Directory** escolha `frontend` (o Vite é detectado sozinho). Nenhuma variável de ambiente.
+4. **Deploy**. Anote o endereço (ex.: `https://monitoria-map.vercel.app`).
+
+## 5. Ajustes finais
+
+1. **Render:** se o endereço da Vercel for diferente do que você pôs no passo 3, corrija
+   `APP_URL_FRONTEND` e `APP_CORS_ORIGENS` em *Environment* (o Render reinicia sozinho).
+2. **Google Cloud** (https://console.cloud.google.com/auth/clients?project=monitoria-map):
+   - No cliente "Monitoria MAP", em **Origens JavaScript autorizadas**, adicione o endereço da Vercel.
+   - Em **Branding**: *Página inicial do aplicativo* = endereço da Vercel; *Link da Política de
+     Privacidade* = endereço da Vercel + `/privacidade`; em *Domínios autorizados* adicione o domínio
+     da Vercel (ex.: `monitoria-map.vercel.app`). Salve.
+   - Em **Público-alvo**, clique em **Publicar app**. Como o sistema só pede nome, e-mail e foto,
+     o Google não exige revisão. Depois disso qualquer conta @aluno.uepb.edu.br entra, sem lista de
+     usuários de teste.
+
+## Checklist
+
+- [ ] `https://SEU-SITE.vercel.app` abre a tela de login com o botão do Google
+- [ ] Entrar com a sua conta da UEPB → você aparece como admin (menu **Gestão**)
+- [ ] Tentar com um Gmail pessoal → deve recusar
+- [ ] `https://SEU-SITE.vercel.app/privacidade` abre a política
+- [ ] DevTools → Application → Cookies: `monitoria_sessao` com **HttpOnly** e **Secure**; Local Storage sem token
+- [ ] Promover os monitores em **Gestão → Pessoas** (depois que eles entrarem uma vez)
+- [ ] Abrir um pedido de teste e ver chegar na fila de outro navegador
+
+## Opcional: e-mails de aviso
+
+Sem e-mail o sistema funciona; os monitores são avisados na tela (com som) quando estão com ele aberto.
+Para também mandar e-mail (pedido novo, assumido, link da reunião), adicione no Render as variáveis
+`APP_EMAIL_HABILITADO=true`, `APP_EMAIL_REMETENTE` e `SPRING_MAIL_*` (modelos no `.env.example`), usando
+um Gmail com senha de app ou um serviço como o Brevo.

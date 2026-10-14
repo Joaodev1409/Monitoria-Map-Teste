@@ -11,6 +11,7 @@ import { InicioAluno } from './paginas/InicioAluno';
 import { Login } from './paginas/Login';
 import { MeusAtendimentos } from './paginas/MeusAtendimentos';
 import { PedirAjuda } from './paginas/PedirAjuda';
+import { Privacidade } from './paginas/Privacidade';
 import { Gestao } from './paginas/admin/Gestao';
 import { Relatorios } from './paginas/admin/Relatorios';
 import { Topicos } from './paginas/admin/Topicos';
@@ -43,10 +44,12 @@ export function App() {
     <BrowserRouter>
       {!usuario ? (
         <Routes>
+          <Route path="privacidade" element={<Privacidade />} />
           <Route path="*" element={<Login />} />
         </Routes>
       ) : (
         <Routes>
+          <Route path="privacidade" element={<Privacidade />} />
           <Route element={<Layout />}>
             <Route index element={<Navigate to={inicio(usuario.papel)} replace />} />
             <Route path="inicio" element={<InicioAluno />} />

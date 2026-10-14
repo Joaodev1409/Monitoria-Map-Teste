@@ -29,7 +29,9 @@ public record AppProperties(
             /* Domínios de e-mail aceitos (ex.: aluno.uepb.edu.br). Vazio = qualquer conta Google. */
             @DefaultValue List<String> dominiosPermitidos,
             /* E-mails que viram ADMIN automaticamente ao entrar. */
-            @DefaultValue List<String> adminEmails
+            @DefaultValue List<String> adminEmails,
+            /* E-mail de contato mostrado na política de privacidade (opcional). */
+            String contatoEmail
     ) {
     }
 
