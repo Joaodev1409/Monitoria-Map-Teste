@@ -1,6 +1,6 @@
 {
   "rewrites": [
-    { "source": "/api/:caminho*", "destination": "https://SUA-API.onrender.com/api/:caminho*" },
+    { "source": "/api/:caminho*", "destination": "https://monitoria-map-api.onrender.com/api/:caminho*" },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
   "headers": [
