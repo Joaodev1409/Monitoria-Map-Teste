@@ -1,0 +1,63 @@
+# Ambiente completo PARA O SEU COMPUTADOR: docker compose up --build
+#   App ........ http://localhost:3000
+#   API/Swagger  http://localhost:8080/swagger-ui.html
+#   E-mails .... http://localhost:8025   (Mailpit captura tudo, nada sai para a internet)
+# As variáveis vêm do arquivo .env (copie de .env.example); os valores após ":-" são padrões.
+#
+# Este arquivo liga o perfil "dev" da API (login sem senha e Swagger) e publica as portas
+# só em 127.0.0.1, para ninguém da rede local acessar. Não use este arquivo em produção:
+# veja docs/deploy.md.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: monitoria
+      POSTGRES_USER: monitoria
+      POSTGRES_PASSWORD: monitoria
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - dados-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U monitoria -d monitoria"]
+      interval: 5s
+      retries: 10
+
+  mailpit:
+    image: axllent/mailpit:v1.20
+    ports:
+      - "127.0.0.1:8025:8025"
+
+  backend:
+    build: ./backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/monitoria
+      SPRING_DATASOURCE_USERNAME: monitoria
+      SPRING_DATASOURCE_PASSWORD: monitoria
+      SPRING_MAIL_HOST: mailpit
+      SPRING_MAIL_PORT: 1025
+      APP_EMAIL_HABILITADO: "true"
+      APP_URL_FRONTEND: http://localhost:3000
+      APP_CORS_ORIGENS: http://localhost:3000,http://localhost:5173
+      APP_SESSAO_SEGREDO: ${APP_SESSAO_SEGREDO:-segredo-local-do-docker-compose-troque-em-producao}
+      APP_SESSAO_COOKIE_SEGURO: "false"
+      APP_AUTH_GOOGLE_CLIENT_ID: ${APP_AUTH_GOOGLE_CLIENT_ID:-}
+      APP_AUTH_DOMINIOS_PERMITIDOS: ${APP_AUTH_DOMINIOS_PERMITIDOS:-aluno.uepb.edu.br,servidor.uepb.edu.br}
+      APP_AUTH_ADMIN_EMAILS: ${APP_AUTH_ADMIN_EMAILS:-}
+    ports:
+      - "127.0.0.1:8080:8080"
+
+  frontend:
+    build: ./frontend
+    depends_on:
+      - backend
+    ports:
+      - "127.0.0.1:3000:80"
+
+volumes:
+  dados-postgres:

@@ -1,0 +1,19 @@
+# Perfil de desenvolvimento local: mvn spring-boot:run -Dspring-boot.run.profiles=dev
+# Libera o login sem Google (veja LoginDesenvolvimentoController), o Swagger e um segredo fixo.
+# NUNCA publique o sistema com este perfil ativo.
+
+app:
+  sessao:
+    segredo: ${APP_SESSAO_SEGREDO:segredo-de-desenvolvimento-com-mais-de-32-caracteres}
+    # Em http://localhost o cookie não pode exigir HTTPS.
+    cookie-seguro: ${APP_SESSAO_COOKIE_SEGURO:false}
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+
+logging:
+  level:
+    br.monitoriamap: DEBUG

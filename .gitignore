@@ -1,0 +1,27 @@
+# Segredos
+.env
+
+# Back-end
+backend/target/
+*.iml
+.idea/
+
+# Front-end
+frontend/node_modules/
+frontend/dist/
+*.tsbuildinfo
+
+# Ferramentas locais (não fazem parte do projeto)
+.github/modernize/
+.claude/settings.local.json
+.impeccable/config.local.json
+**/.impeccable/hook.cache.json
+.impeccable/build/
+.impeccable/questions/
+.impeccable/referencias/
+.impeccable/review/
+
+# Sistema
+.DS_Store
+Thumbs.db
+.vscode/

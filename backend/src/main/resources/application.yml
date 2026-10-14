@@ -1,0 +1,76 @@
+# Configuração base. Tudo que muda entre ambientes vem de variáveis de ambiente
+# (veja ../.env.example). Os valores após ":" são apenas padrões para desenvolvimento.
+
+spring:
+  application:
+    name: monitoria-map
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/monitoria}
+    username: ${SPRING_DATASOURCE_USERNAME:monitoria}
+    password: ${SPRING_DATASOURCE_PASSWORD:monitoria}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate   # o esquema é responsabilidade do Flyway
+    properties:
+      hibernate.jdbc.time_zone: UTC
+  flyway:
+    enabled: true
+  mail:
+    host: ${SPRING_MAIL_HOST:localhost}
+    port: ${SPRING_MAIL_PORT:1025}
+    username: ${SPRING_MAIL_USERNAME:}
+    password: ${SPRING_MAIL_PASSWORD:}
+    properties:
+      mail.smtp.auth: ${SPRING_MAIL_SMTP_AUTH:false}
+      mail.smtp.starttls.enable: ${SPRING_MAIL_STARTTLS:false}
+  thymeleaf:
+    check-template-location: false
+  mvc:
+    async:
+      request-timeout: -1   # conexões SSE controlam o próprio tempo limite
+  jackson:
+    default-property-inclusion: always
+
+server:
+  port: ${PORT:8080}
+  forward-headers-strategy: framework
+
+app:
+  url-frontend: ${APP_URL_FRONTEND:http://localhost:5173}
+  fuso-horario: ${APP_FUSO_HORARIO:America/Fortaleza}
+  auth:
+    google-client-id: ${APP_AUTH_GOOGLE_CLIENT_ID:}
+    dominios-permitidos: ${APP_AUTH_DOMINIOS_PERMITIDOS:aluno.uepb.edu.br,servidor.uepb.edu.br}
+    admin-emails: ${APP_AUTH_ADMIN_EMAILS:}
+  sessao:
+    segredo: ${APP_SESSAO_SEGREDO:}
+    validade: ${APP_SESSAO_VALIDADE:8h}
+    cookie-seguro: ${APP_SESSAO_COOKIE_SEGURO:true}
+  cors:
+    origens: ${APP_CORS_ORIGENS:http://localhost:5173}
+  email:
+    habilitado: ${APP_EMAIL_HABILITADO:false}
+    remetente: ${APP_EMAIL_REMETENTE:Monitoria MAP <nao-responda@monitoriamap.local>}
+  limites:
+    solicitacoes-ativas-por-aluno: ${APP_LIMITE_SOLICITACOES_ATIVAS:2}
+    tentativas-de-login-por-minuto: ${APP_LIMITE_LOGIN_POR_MINUTO:20}
+    novas-solicitacoes-por-hora: ${APP_LIMITE_SOLICITACOES_POR_HORA:6}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+
+# A documentação interativa da API (Swagger) só existe no perfil dev:
+# em produção ela entregaria o mapa de todas as rotas a quem quisesse atacar.
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+    path: /swagger-ui.html
