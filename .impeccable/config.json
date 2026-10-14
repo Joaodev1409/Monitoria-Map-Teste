@@ -1,0 +1,14 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "bounce-easing",
+        "value": "cubic-bezier(0.3, 1.25, 0.5, 1)",
+        "createdAt": "2026-10-14T18:59:55.525Z",
+        "reason": "direction grammar of the world the user chose (warm consumer app surface): 'motion is a soft spring on press'; used only on press/selection feedback, entries use exponential ease-out"
+      }
+    ]
+  }
+}
