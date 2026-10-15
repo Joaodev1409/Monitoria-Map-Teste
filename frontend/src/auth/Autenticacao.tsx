@@ -38,6 +38,32 @@ export function ProvedorAutenticacao({ children }: { children: ReactNode }) {
       .finally(() => setCarregando(false));
   }, [esquecer]);
 
+  // O papel pode mudar enquanto a pessoa está com o app aberto (o admin promoveu a monitor,
+  // por exemplo). O servidor já respeita o novo papel na hora; aqui a tela acompanha:
+  // confere a sessão ao voltar para a aba e a cada minuto.
+  useEffect(() => {
+    if (!usuario) return;
+    const atualizar = () => {
+      if (document.visibilityState !== 'visible') return;
+      api<{ usuario: Usuario | null }>('/api/auth/sessao')
+        .then((r) => {
+          if (!r.usuario) return esquecer();
+          setUsuario((atual) =>
+            atual && atual.papel === r.usuario!.papel && atual.nome === r.usuario!.nome ? atual : r.usuario,
+          );
+        })
+        .catch(() => undefined);
+    };
+    const intervalo = setInterval(atualizar, 60_000);
+    document.addEventListener('visibilitychange', atualizar);
+    window.addEventListener('focus', atualizar);
+    return () => {
+      clearInterval(intervalo);
+      document.removeEventListener('visibilitychange', atualizar);
+      window.removeEventListener('focus', atualizar);
+    };
+  }, [usuario?.id, esquecer]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const valor = useMemo<ContextoAutenticacao>(
     () => ({
       usuario,
