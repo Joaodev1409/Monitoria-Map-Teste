@@ -66,6 +66,11 @@ management:
   endpoint:
     health:
       show-details: never
+  health:
+    # Sem isso, o /actuator/health tenta conectar no servidor de e-mail e responde DOWN quando
+    # o e-mail está desligado, e o Render nunca considera a API saudável.
+    mail:
+      enabled: ${APP_EMAIL_HABILITADO:false}
 
 # A documentação interativa da API (Swagger) só existe no perfil dev:
 # em produção ela entregaria o mapa de todas as rotas a quem quisesse atacar.
