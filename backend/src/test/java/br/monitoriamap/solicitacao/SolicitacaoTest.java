@@ -220,6 +220,88 @@ class SolicitacaoTest {
     }
 
     @Nested
+    @DisplayName("conversa")
+    class Conversa {
+
+        @Test
+        void naoHaConversaAntesDeAlguemAssumir() {
+            assertThatThrownBy(() -> solicitacao.enviarMensagem(aluno, "oi", depois(1)))
+                    .isInstanceOf(TransicaoInvalidaException.class)
+                    .hasMessage("A conversa começa quando um monitor assumir o pedido.");
+        }
+
+        @Test
+        void alunoEMonitorResponsavelConversam() {
+            solicitacao.assumir(ana, depois(1));
+
+            MensagemSolicitacao pergunta = solicitacao.enviarMensagem(aluno, "  Pode ser às 15h?  ", depois(2));
+            MensagemSolicitacao resposta = solicitacao.enviarMensagem(ana, "Pode sim!", depois(3));
+
+            assertThat(pergunta.getTexto()).isEqualTo("Pode ser às 15h?");
+            assertThat(pergunta.getAutor()).isEqualTo(aluno);
+            assertThat(pergunta.getSolicitacao()).isSameAs(solicitacao);
+            assertThat(resposta.getEnviadaEm()).isEqualTo(depois(3));
+        }
+
+        @Test
+        void outroMonitorNaoEntraNaConversa() {
+            solicitacao.assumir(ana, depois(1));
+            assertThatThrownBy(() -> solicitacao.enviarMensagem(bruno, "oi", depois(2)))
+                    .isInstanceOf(AcessoNegadoException.class)
+                    .hasMessage("A conversa é só entre o aluno e o monitor responsável.");
+        }
+
+        @Test
+        void adminLeMasNaoEscreve() {
+            solicitacao.assumir(ana, depois(1));
+            assertThat(solicitacao.podeLerConversa(admin)).isTrue();
+            assertThatThrownBy(() -> solicitacao.enviarMensagem(admin, "oi", depois(2)))
+                    .isInstanceOf(AcessoNegadoException.class)
+                    .hasMessage("Administradores acompanham a conversa, mas não escrevem nela.");
+        }
+
+        @Test
+        void mensagemEmBrancoEhRecusada() {
+            solicitacao.assumir(ana, depois(1));
+            assertThatThrownBy(() -> solicitacao.enviarMensagem(aluno, "   \n ", depois(2)))
+                    .isInstanceOf(br.monitoriamap.common.RegraNegocioException.class);
+        }
+
+        @Test
+        void depoisDeConcluidaAConversaFicaSoParaLeitura() {
+            solicitacao.assumir(ana, depois(1));
+            solicitacao.concluir(ana, null, depois(2));
+
+            assertThatThrownBy(() -> solicitacao.enviarMensagem(aluno, "valeu!", depois(3)))
+                    .isInstanceOf(TransicaoInvalidaException.class)
+                    .hasMessage("A conversa foi encerrada com o atendimento.");
+            assertThat(solicitacao.podeLerConversa(aluno)).isTrue();
+            assertThat(solicitacao.podeLerConversa(ana)).isTrue();
+        }
+
+        @Test
+        void quemLeAConversa() {
+            Usuario outroAluno = usuario(5, "Outro Aluno", Papel.ALUNO);
+            solicitacao.assumir(ana, depois(1));
+
+            assertThat(solicitacao.podeLerConversa(aluno)).isTrue();
+            assertThat(solicitacao.podeLerConversa(ana)).isTrue();
+            assertThat(solicitacao.podeLerConversa(bruno)).isFalse();
+            assertThat(solicitacao.podeLerConversa(outroAluno)).isFalse();
+        }
+
+        @Test
+        void quemAssumeDepoisDeDevolvidaHerdaAConversa() {
+            solicitacao.assumir(ana, depois(1));
+            solicitacao.devolver(ana, depois(2));
+            solicitacao.assumir(bruno, depois(3));
+
+            assertThat(solicitacao.podeLerConversa(bruno)).isTrue();
+            assertThat(solicitacao.podeLerConversa(ana)).isFalse();
+        }
+    }
+
+    @Nested
     @DisplayName("estados finais")
     class EstadosFinais {
 

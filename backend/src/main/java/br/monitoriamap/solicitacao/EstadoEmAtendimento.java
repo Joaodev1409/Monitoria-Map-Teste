@@ -47,6 +47,17 @@ final class EstadoEmAtendimento implements EstadoSolicitacao {
         solicitacao.registrarLink(usuario, link, agora);
     }
 
+    /** Escrevem só os dois envolvidos. O admin acompanha a conversa, mas não fala por ninguém. */
+    @Override
+    public MensagemSolicitacao enviarMensagem(Solicitacao solicitacao, Usuario autor, String texto, Instant agora) {
+        if (!solicitacao.foiAbertaPor(autor) && !solicitacao.estaSendoAtendidaPor(autor)) {
+            throw new AcessoNegadoException(autor.isAdmin()
+                    ? "Administradores acompanham a conversa, mas não escrevem nela."
+                    : "A conversa é só entre o aluno e o monitor responsável.");
+        }
+        return solicitacao.criarMensagem(autor, texto, agora);
+    }
+
     private static void exigirResponsavel(Solicitacao solicitacao, Usuario usuario) {
         if (!solicitacao.estaSendoAtendidaPor(usuario) && !usuario.isAdmin()) {
             throw new AcessoNegadoException("Só o monitor responsável pode alterar este atendimento.");

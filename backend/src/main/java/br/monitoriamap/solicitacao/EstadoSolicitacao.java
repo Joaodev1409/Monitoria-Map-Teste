@@ -45,4 +45,16 @@ sealed interface EstadoSolicitacao
     default void definirLink(Solicitacao solicitacao, Usuario usuario, String link, Instant agora) {
         throw TransicaoInvalidaException.de(status(), "trocar o link de");
     }
+
+    /**
+     * A conversa só existe enquanto há atendimento: antes de alguém assumir não há com quem
+     * falar, e depois de concluir ela fica só para leitura.
+     */
+    default MensagemSolicitacao enviarMensagem(Solicitacao solicitacao, Usuario autor, String texto, Instant agora) {
+        throw new TransicaoInvalidaException(switch (status()) {
+            case ABERTA -> "A conversa começa quando um monitor assumir o pedido.";
+            case CONCLUIDA, CANCELADA -> "A conversa foi encerrada com o atendimento.";
+            case EM_ATENDIMENTO -> "Não é possível enviar mensagens agora.";
+        });
+    }
 }

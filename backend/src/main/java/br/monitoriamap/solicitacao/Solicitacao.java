@@ -139,6 +139,17 @@ public class Solicitacao {
         status.estado().definirLink(this, usuario, link, agora);
     }
 
+    /**
+     * Mensagem na conversa do pedido. Quem pode escrever depende do estado (só em atendimento,
+     * só os dois envolvidos), então a decisão também fica com ele.
+     */
+    public MensagemSolicitacao enviarMensagem(Usuario autor, String texto, Instant agora) {
+        if (texto == null || texto.isBlank()) {
+            throw new RegraNegocioException("Escreva a mensagem antes de enviar.");
+        }
+        return status.estado().enviarMensagem(this, autor, texto.strip(), agora);
+    }
+
     // ---- Mutações chamadas pelos estados (package-private de propósito) ---------------
 
     void registrarAssuncao(Usuario monitor, Instant agora) {
@@ -174,6 +185,10 @@ public class Solicitacao {
         registrarEvento(TipoEvento.LINK_DEFINIDO, autor, agora, null);
     }
 
+    MensagemSolicitacao criarMensagem(Usuario autor, String texto, Instant agora) {
+        return new MensagemSolicitacao(this, autor, texto, agora);
+    }
+
     private void registrarEvento(TipoEvento tipo, Usuario autor, Instant agora, String detalhe) {
         eventos.add(new EventoSolicitacao(this, tipo, autor, agora, detalhe));
     }
@@ -186,6 +201,15 @@ public class Solicitacao {
 
     public boolean estaSendoAtendidaPor(Usuario usuario) {
         return monitor != null && monitor.getId() != null && monitor.getId().equals(usuario.getId());
+    }
+
+    /**
+     * Quem lê a conversa: o aluno, o monitor que está (ou esteve, se já concluiu) com o pedido
+     * e o admin. Vale em qualquer estado: depois de concluir, o registro continua disponível.
+     * Se o pedido voltar para a fila e outro monitor assumir, ele herda a conversa.
+     */
+    public boolean podeLerConversa(Usuario usuario) {
+        return foiAbertaPor(usuario) || estaSendoAtendidaPor(usuario) || usuario.isAdmin();
     }
 
     /** Quanto tempo o aluno esperou até alguém assumir (vazio se ninguém assumiu). */
