@@ -1,6 +1,7 @@
 package br.monitoriamap.notificacao;
 
 import br.monitoriamap.auth.UsuarioAutenticado;
+import br.monitoriamap.solicitacao.MensagemEnviadaEvent;
 import br.monitoriamap.solicitacao.SolicitacaoAlteradaEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,7 +19,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * Empurra as mudanças para quem está com o sistema aberto, via Server-Sent Events (SSE).
  *
  * <p>Monitores recebem tudo (para a fila atualizar sozinha); o aluno recebe apenas
- * o que acontece com as próprias solicitações.
+ * o que acontece com as próprias solicitações. Mensagens da conversa vão só para os dois
+ * participantes: os outros monitores não recebem.
  */
 @Component
 public class PainelTempoRealNotificador implements Notificador {
@@ -54,6 +56,19 @@ public class PainelTempoRealNotificador implements Notificador {
                         .name("solicitacao")
                         .id(String.valueOf(System.currentTimeMillis()))
                         .data(evento));
+            }
+        }
+    }
+
+    @Override
+    public void notificarMensagem(MensagemEnviadaEvent evento) {
+        Set<Long> participantes = Set.of(evento.alunoId(), evento.monitorId());
+        for (Conexao conexao : conexoes) {
+            if (participantes.contains(conexao.usuarioId())) {
+                enviar(conexao, SseEmitter.event()
+                        .name("mensagem")
+                        .id(String.valueOf(System.currentTimeMillis()))
+                        .data(evento.mensagem()));
             }
         }
     }

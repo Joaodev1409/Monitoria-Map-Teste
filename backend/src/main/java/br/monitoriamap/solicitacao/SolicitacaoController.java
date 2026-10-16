@@ -3,6 +3,8 @@ package br.monitoriamap.solicitacao;
 import br.monitoriamap.auth.UsuarioAutenticado;
 import br.monitoriamap.solicitacao.dto.ConcluirRequest;
 import br.monitoriamap.solicitacao.dto.LinkRequest;
+import br.monitoriamap.solicitacao.dto.MensagemDTO;
+import br.monitoriamap.solicitacao.dto.MensagemRequest;
 import org.springframework.web.bind.annotation.PatchMapping;
 import br.monitoriamap.solicitacao.dto.NovaSolicitacaoRequest;
 import br.monitoriamap.solicitacao.dto.SolicitacaoDTO;
@@ -26,9 +28,11 @@ import java.util.List;
 public class SolicitacaoController {
 
     private final SolicitacaoService servico;
+    private final ConversaService conversa;
 
-    public SolicitacaoController(SolicitacaoService servico) {
+    public SolicitacaoController(SolicitacaoService servico, ConversaService conversa) {
         this.servico = servico;
+        this.conversa = conversa;
     }
 
     @PostMapping
@@ -90,5 +94,19 @@ public class SolicitacaoController {
     @PostMapping("/{id}/cancelar")
     public SolicitacaoDTO cancelar(@AuthenticationPrincipal UsuarioAutenticado usuario, @PathVariable Long id) {
         return servico.cancelar(id, usuario.id());
+    }
+
+    /** Conversa do pedido: o aluno, o monitor responsável e o admin leem. */
+    @GetMapping("/{id}/mensagens")
+    public List<MensagemDTO> mensagens(@AuthenticationPrincipal UsuarioAutenticado usuario, @PathVariable Long id) {
+        return conversa.listar(id, usuario.id());
+    }
+
+    /** Só o aluno e o monitor responsável escrevem, e só durante o atendimento (a regra está no State). */
+    @PostMapping("/{id}/mensagens")
+    @ResponseStatus(HttpStatus.CREATED)
+    public MensagemDTO enviarMensagem(@AuthenticationPrincipal UsuarioAutenticado usuario, @PathVariable Long id,
+                                      @Valid @RequestBody MensagemRequest pedido) {
+        return conversa.enviar(id, usuario.id(), pedido.texto());
     }
 }

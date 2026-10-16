@@ -60,7 +60,8 @@ public record AppProperties(
     public record Limites(
             @DefaultValue("2") int solicitacoesAtivasPorAluno,
             @DefaultValue("20") int tentativasDeLoginPorMinuto,
-            @DefaultValue("6") int novasSolicitacoesPorHora
+            @DefaultValue("6") int novasSolicitacoesPorHora,
+            @DefaultValue("30") int mensagensPorMinuto
     ) {
     }
 }

@@ -57,6 +57,7 @@ app:
     solicitacoes-ativas-por-aluno: ${APP_LIMITE_SOLICITACOES_ATIVAS:2}
     tentativas-de-login-por-minuto: ${APP_LIMITE_LOGIN_POR_MINUTO:20}
     novas-solicitacoes-por-hora: ${APP_LIMITE_SOLICITACOES_POR_HORA:6}
+    mensagens-por-minuto: ${APP_LIMITE_MENSAGENS_POR_MINUTO:30}
 
 management:
   endpoints:

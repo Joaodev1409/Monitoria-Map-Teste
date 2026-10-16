@@ -1,5 +1,6 @@
 package br.monitoriamap.notificacao;
 
+import br.monitoriamap.solicitacao.MensagemEnviadaEvent;
 import br.monitoriamap.solicitacao.SolicitacaoAlteradaEvent;
 
 /**
@@ -13,6 +14,13 @@ import br.monitoriamap.solicitacao.SolicitacaoAlteradaEvent;
 public interface Notificador {
 
     void notificar(SolicitacaoAlteradaEvent evento);
+
+    /**
+     * Mensagem nova na conversa de um pedido. Por padrão, o canal ignora: hoje só o painel em
+     * tempo real entrega mensagens, e o e-mail não precisou mudar nada para isso.
+     */
+    default void notificarMensagem(MensagemEnviadaEvent evento) {
+    }
 
     default String nome() {
         return getClass().getSimpleName();

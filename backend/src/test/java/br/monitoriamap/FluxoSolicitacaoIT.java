@@ -62,7 +62,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ActiveProfiles("dev")
 @TestPropertySource(properties = {
         "app.limites.novas-solicitacoes-por-hora=1000",
-        "app.limites.tentativas-de-login-por-minuto=1000"
+        "app.limites.tentativas-de-login-por-minuto=1000",
+        "app.limites.mensagens-por-minuto=1000"
 })
 class FluxoSolicitacaoIT {
 
@@ -354,5 +355,99 @@ class FluxoSolicitacaoIT {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.linkReuniao").value("https://meet.google.com/abc-defg-hij"))
                 .andExpect(jsonPath("$.historico[2].tipo").value("LINK_DEFINIDO"));
+    }
+
+    // ---- Conversa no pedido ------------------------------------------------------------------
+
+    private org.springframework.test.web.servlet.ResultActions escrever(long id, Cookie quem, String texto)
+            throws Exception {
+        return mvc.perform(post("/api/solicitacoes/{id}/mensagens", id).cookie(quem).with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(json.writeValueAsString(Map.of("texto", texto))));
+    }
+
+    @Test
+    void alunoEMonitorResponsavelConversamDuranteOAtendimento() throws Exception {
+        long id = abrirSolicitacao(aluno);
+
+        escrever(id, aluno, "Alguém aí?")
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.detail").value("A conversa começa quando um monitor assumir o pedido."));
+
+        mvc.perform(post("/api/solicitacoes/{id}/assumir", id).cookie(ana).with(csrf())).andExpect(status().isOk());
+
+        escrever(id, aluno, "  Pode ser às 15h?  ")
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.texto").value("Pode ser às 15h?"))
+                .andExpect(jsonPath("$.autor.nome").value("Maria Aluna"))
+                .andExpect(jsonPath("$.solicitacaoId").value(id));
+        escrever(id, ana, "Pode! Manda o trecho:\n```java\nsujeito.notificar();\n```")
+                .andExpect(status().isCreated());
+
+        mvc.perform(get("/api/solicitacoes/{id}/mensagens", id).cookie(aluno))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].texto").value("Pode ser às 15h?"))
+                .andExpect(jsonPath("$[1].autor.nome").value("Ana Monitora"))
+                .andExpect(jsonPath("$[1].texto").value(containsString("```java")))
+                .andExpect(content().string(not(containsString("@exemplo.com"))));
+        mvc.perform(get("/api/solicitacoes/{id}/mensagens", id).cookie(ana))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2));
+    }
+
+    @Test
+    void quemNaoParticipaNaoEntraNaConversa() throws Exception {
+        String sufixo = UUID.randomUUID().toString().substring(0, 8);
+        Cookie outroAluno = login("outro-" + sufixo + "@exemplo.com", "Outro Aluno", "ALUNO");
+        Cookie admin = login("admin-" + sufixo + "@exemplo.com", "Prof Admin", "ADMIN");
+        long id = abrirSolicitacao(aluno);
+        mvc.perform(post("/api/solicitacoes/{id}/assumir", id).cookie(ana).with(csrf())).andExpect(status().isOk());
+        escrever(id, aluno, "Oi, Ana!").andExpect(status().isCreated());
+
+        // Outro aluno nem descobre que o pedido existe; outro monitor sabe, mas a conversa não é dele.
+        mvc.perform(get("/api/solicitacoes/{id}/mensagens", id).cookie(outroAluno)).andExpect(status().isNotFound());
+        escrever(id, outroAluno, "oi").andExpect(status().isNotFound());
+        mvc.perform(get("/api/solicitacoes/{id}/mensagens", id).cookie(bruno)).andExpect(status().isForbidden());
+        escrever(id, bruno, "oi").andExpect(status().isForbidden());
+
+        // O admin acompanha, mas não escreve.
+        mvc.perform(get("/api/solicitacoes/{id}/mensagens", id).cookie(admin))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1));
+        escrever(id, admin, "oi")
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.detail").value("Administradores acompanham a conversa, mas não escrevem nela."));
+    }
+
+    @Test
+    void depoisDeConcluidoAConversaFicaSoParaLeitura() throws Exception {
+        long id = abrirSolicitacao(aluno);
+        mvc.perform(post("/api/solicitacoes/{id}/assumir", id).cookie(ana).with(csrf())).andExpect(status().isOk());
+        escrever(id, ana, "Resolvido?").andExpect(status().isCreated());
+        mvc.perform(post("/api/solicitacoes/{id}/concluir", id).cookie(ana).with(csrf())).andExpect(status().isOk());
+
+        escrever(id, aluno, "Valeu!")
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.detail").value("A conversa foi encerrada com o atendimento."));
+        mvc.perform(get("/api/solicitacoes/{id}/mensagens", id).cookie(aluno))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1));
+    }
+
+    @Test
+    void mensagemInvalidaOuSemCsrfEhRecusada() throws Exception {
+        long id = abrirSolicitacao(aluno);
+        mvc.perform(post("/api/solicitacoes/{id}/assumir", id).cookie(ana).with(csrf())).andExpect(status().isOk());
+
+        escrever(id, aluno, "   ")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.erros.texto").value("Escreva a mensagem antes de enviar."));
+        escrever(id, aluno, "a".repeat(4001))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.erros.texto").value("A mensagem pode ter até 4000 caracteres."));
+        mvc.perform(post("/api/solicitacoes/{id}/mensagens", id).cookie(aluno)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"texto\":\"oi\"}"))
+                .andExpect(status().isForbidden());
     }
 }

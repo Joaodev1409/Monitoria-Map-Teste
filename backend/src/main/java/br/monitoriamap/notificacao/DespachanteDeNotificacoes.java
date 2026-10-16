@@ -1,5 +1,6 @@
 package br.monitoriamap.notificacao;
 
+import br.monitoriamap.solicitacao.MensagemEnviadaEvent;
 import br.monitoriamap.solicitacao.SolicitacaoAlteradaEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,6 +42,19 @@ public class DespachanteDeNotificacoes {
             } catch (RuntimeException e) {
                 log.warn("Falha no notificador {} para a solicitação {}: {}",
                         notificador.nome(), evento.solicitacao().id(), e.getMessage(), e);
+            }
+        }
+    }
+
+    @Async
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
+    public void aoEnviarMensagem(MensagemEnviadaEvent evento) {
+        for (Notificador notificador : notificadores) {
+            try {
+                notificador.notificarMensagem(evento);
+            } catch (RuntimeException e) {
+                log.warn("Falha no notificador {} para a mensagem da solicitação {}: {}",
+                        notificador.nome(), evento.mensagem().solicitacaoId(), e.getMessage(), e);
             }
         }
     }
