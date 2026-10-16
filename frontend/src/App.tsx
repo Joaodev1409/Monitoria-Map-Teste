@@ -2,8 +2,8 @@ import type { ReactNode } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import type { Papel } from './api/tipos';
 import { podeAtender, useAutenticacao } from './auth/Autenticacao';
+import { Abertura } from './componentes/Abertura';
 import { Layout } from './componentes/Layout';
-import { SimboloMarca } from './componentes/Marca';
 import { Conta } from './paginas/Conta';
 import { DetalheSolicitacao } from './paginas/DetalheSolicitacao';
 import { Fila } from './paginas/Fila';
@@ -31,14 +31,7 @@ const MONITORES: Papel[] = ['MONITOR', 'ADMIN'];
 export function App() {
   const { usuario, carregando } = useAutenticacao();
 
-  if (carregando) {
-    return (
-      <div className="carregando" role="status" style={{ minHeight: '100vh' }}>
-        <SimboloMarca tamanho={44} />
-        <span className="sr-only">Abrindo a monitoria…</span>
-      </div>
-    );
-  }
+  if (carregando) return <Abertura />;
 
   return (
     <BrowserRouter>

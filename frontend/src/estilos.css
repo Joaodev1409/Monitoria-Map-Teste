@@ -28,6 +28,9 @@
 
   --aberta-fundo: #f6e6c6;
   --aberta-texto: #74500f;
+  --aurora-verde: rgb(11 133 113 / 0.38);
+  --aurora-menta: rgb(60 195 172 / 0.34);
+  --aurora-ambar: rgb(222 160 72 / 0.42);
   --atendimento-fundo: #dbe6f1;
   --atendimento-texto: #2b4c70;
   --concluida-fundo: #dbeadc;
@@ -74,6 +77,9 @@
     --sobre-acao: #0c1916;
     --aberta-fundo: #3b2f18;
     --aberta-texto: #f1d08c;
+    --aurora-verde: rgb(11 133 113 / 0.75);
+    --aurora-menta: rgb(60 195 172 / 0.4);
+    --aurora-ambar: rgb(214 148 62 / 0.55);
     --atendimento-fundo: #1f2d3c;
     --atendimento-texto: #abc7e6;
     --concluida-fundo: #1e3123;
@@ -107,6 +113,9 @@
   --sobre-acao: #0c1916;
   --aberta-fundo: #3b2f18;
   --aberta-texto: #f1d08c;
+  --aurora-verde: rgb(11 133 113 / 0.75);
+  --aurora-menta: rgb(60 195 172 / 0.4);
+  --aurora-ambar: rgb(214 148 62 / 0.55);
   --atendimento-fundo: #1f2d3c;
   --atendimento-texto: #abc7e6;
   --concluida-fundo: #1e3123;
@@ -2063,11 +2072,165 @@ table.tabela {
   }
 }
 
-.carregando {
-  display: grid;
-  place-items: center;
-  min-height: 40vh;
-  color: var(--tinta-2);
+/* Abertura: enquanto o app descobre a sessão (e a API acorda), os pontos do símbolo
+   pulsam em sequência, como alguém digitando do outro lado. */
+.abertura {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 22px;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: 24px;
+  text-align: center;
+}
+
+.abertura > :not(.aurora) {
+  position: relative;
+  z-index: 1;
+}
+
+/* Aurora: manchas de luz verde e âmbar passeando devagar atrás do símbolo. São gradientes
+   radiais (já nascem suaves, sem filter: blur, que pesa no celular) e só animam transform.
+   Ciclos de 16, 20 e 24 s, com atrasos diferentes, para nunca parecerem sincronizadas. */
+.aurora {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  animation: aurora-entrar 1.2s var(--saida) 0.3s both;
+}
+
+.aurora span {
+  position: absolute;
+  width: 72vmax;
+  height: 72vmax;
+  border-radius: 50%;
+  will-change: transform;
+  animation: aurora-passear 16s ease-in-out infinite alternate;
+}
+
+.aurora span:nth-child(1) {
+  top: -26vmax;
+  left: -20vmax;
+  background: radial-gradient(circle, var(--aurora-verde), transparent 65%);
+}
+
+.aurora span:nth-child(2) {
+  right: -22vmax;
+  bottom: -28vmax;
+  background: radial-gradient(circle, var(--aurora-ambar), transparent 65%);
+  animation-duration: 20s;
+  animation-delay: -7s;
+  animation-direction: alternate-reverse;
+}
+
+.aurora span:nth-child(3) {
+  width: 56vmax;
+  height: 56vmax;
+  top: -30vmax;
+  right: -14vmax;
+  background: radial-gradient(circle, var(--aurora-menta), transparent 65%);
+  animation-duration: 24s;
+  animation-delay: -12s;
+}
+
+/* Véu na cor do fundo, mais forte no meio: o texto fica legível em cima das cores. */
+.aurora::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: radial-gradient(
+    ellipse 46ch 34ch at 50% 50%,
+    var(--fundo) 0%,
+    color-mix(in srgb, var(--fundo) 55%, transparent) 55%,
+    transparent 100%
+  );
+}
+
+/* Grão bem leve por cima: evita as "faixas" que degradês grandes formam em algumas telas. */
+.aurora::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  opacity: 0.06;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+}
+
+@keyframes aurora-entrar {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes aurora-passear {
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(12vmax, 8vmax) scale(1.15);
+  }
+  100% {
+    transform: translate(-4vmax, 16vmax) scale(0.92);
+  }
+}
+
+.abertura svg circle {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: pulsar-ponto 1.4s var(--saida) infinite;
+}
+
+.abertura svg circle:nth-of-type(2) {
+  animation-delay: 0.18s;
+}
+
+.abertura svg circle:nth-of-type(3) {
+  animation-delay: 0.36s;
+}
+
+@keyframes pulsar-ponto {
+  0%,
+  60%,
+  100% {
+    transform: scale(1);
+  }
+  25% {
+    transform: scale(1.35);
+  }
+}
+
+.abertura-texto {
+  max-width: 34ch;
+  min-height: 7.5em;
+}
+
+.abertura-texto > * {
+  animation: aparecer-texto 0.6s var(--saida) both;
+}
+
+.abertura-titulo {
+  margin: 0 0 6px;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.abertura-texto .secundario {
+  margin: 0;
+  line-height: 1.5;
+}
+
+@keyframes aparecer-texto {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
 }
 
 .girando {
