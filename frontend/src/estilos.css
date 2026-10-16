@@ -609,18 +609,21 @@ time,
   font-size: 1.1rem;
 }
 
-/* Lista de linhas dentro de um único cartão (sem cartões soltos). */
+/* Lista de linhas dentro de um único cartão (sem cartões soltos). As linhas são blocos
+   arredondados com um respiro até a borda: o fundo do hover nunca vaza pelos cantos do cartão.
+   Respiro (6px) + padding da linha (14px) = os mesmos 20px de margem do conteúdo. */
 .linhas {
   list-style: none;
   margin: 0;
-  padding: 4px 0;
+  padding: 6px;
 }
 
 .linha {
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 14px 20px;
+  padding: 14px;
+  border-radius: calc(var(--raio-cartao) - 6px);
   position: relative;
 }
 
@@ -628,8 +631,8 @@ time,
   content: '';
   position: absolute;
   top: 0;
-  left: 20px;
-  right: 20px;
+  left: 14px;
+  right: 14px;
   height: 1px;
   background: var(--borda);
 }
@@ -663,7 +666,7 @@ a.linha-titulo:hover {
 @media (max-width: 560px) {
   .linha {
     flex-wrap: wrap;
-    padding: 14px 16px;
+    padding: 14px 10px;
   }
 
   .linha-acoes {
@@ -673,8 +676,8 @@ a.linha-titulo:hover {
   }
 
   .linha + .linha::before {
-    left: 16px;
-    right: 16px;
+    left: 10px;
+    right: 10px;
   }
 }
 
@@ -1345,11 +1348,11 @@ a.pilula {
   min-width: 0;
 }
 
+/* O nome completo importa (é o registro do atendimento): quebra em vez de vazar ou ser cortado. */
 .pessoa strong {
   display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .pessoa small {
@@ -1380,6 +1383,7 @@ a.pilula {
 
 .dados {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 18px;
   margin: 0;
 }
@@ -1449,12 +1453,12 @@ a.pilula {
 
 /* Linhas e cartões inteiros clicáveis: o link do título se estica sobre o item todo,
    e os botões dentro dele ficam por cima, continuando clicáveis. */
-.linha:has(.linha-titulo),
+.linha:has(a.linha-titulo),
 .clicavel {
   position: relative;
 }
 
-.linha-titulo::after,
+a.linha-titulo::after,
 .esticado::after {
   content: '';
   position: absolute;
@@ -1465,22 +1469,34 @@ a.pilula {
 .linha button,
 .linha a:not(.linha-titulo),
 .linha form,
+.linha select,
+.linha input,
+.linha label,
 .linha .confirmacao,
 .clicavel button,
 .clicavel a:not(.esticado),
 .clicavel form,
+.clicavel select,
+.clicavel input,
+.clicavel label,
 .clicavel .confirmacao {
   position: relative;
   z-index: 1;
 }
 
-.linha:has(.linha-titulo) {
+.linha:has(a.linha-titulo) {
   cursor: pointer;
   transition: background 0.18s;
 }
 
-.linha:has(.linha-titulo):hover {
+.linha:has(a.linha-titulo):hover {
   background: var(--cartao-2);
+}
+
+/* O divisor some ao redor da linha em destaque, para o bloco arredondado ficar limpo. */
+.linha:has(a.linha-titulo):hover::before,
+.linha:has(a.linha-titulo):hover + .linha::before {
+  opacity: 0;
 }
 
 .clicavel {
@@ -1498,7 +1514,7 @@ a.pilula {
   transition: transform 0.25s var(--saida), color 0.2s;
 }
 
-.linha:hover .linha-seta {
+.linha:has(a.linha-titulo):hover .linha-seta {
   color: var(--tinta-2);
   transform: translateX(3px);
 }
