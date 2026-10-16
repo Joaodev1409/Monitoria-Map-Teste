@@ -24,6 +24,8 @@ Observer, Strategy, Facade...).
 - Login com a conta Google da UEPB (@aluno.uepb.edu.br ou @servidor.uepb.edu.br), sem cadastro nem senha
   própria; e-mails de aviso e modo claro/escuro.
 - Atendimento online: o aluno ou o monitor responsável colocam o link da chamada a qualquer momento.
+- Conversa dentro do pedido entre o aluno e o monitor que assumiu, ao vivo, com blocos de código. Depois
+  de concluído, fica só para leitura; o admin acompanha, mas não escreve.
 
 ## Tecnologias
 

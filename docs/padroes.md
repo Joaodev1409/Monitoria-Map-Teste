@@ -77,6 +77,8 @@ classDiagram
         +concluir()
         +devolver()
         +cancelar()
+        +definirLink()
+        +enviarMensagem()
     }
     Solicitacao --> StatusSolicitacao
     StatusSolicitacao --> EstadoSolicitacao
@@ -92,6 +94,22 @@ classDiagram
 - **`sealed`** (Java 17) garante que não existem outros estados além dos quatro listados.
 - **Estados sem campos** podem ser compartilhados: cada constante do `enum` guarda uma única instância.
 - O banco guarda só o `enum` (texto `"ABERTA"`). O objeto de estado é derivado dele.
+- **Nem toda regra do State muda o status.** `definirLink` e `enviarMensagem` não mudam o estado, mas
+  *quem pode* fazê-las depende dele: a conversa só existe em `EM_ATENDIMENTO` e só entre o aluno e o
+  monitor responsável. Por isso essas regras também moram nos estados, em vez de virar `if`s no serviço:
+
+```java
+// EstadoSolicitacao: por padrão, não há conversa (ABERTA, CONCLUIDA, CANCELADA)
+default MensagemSolicitacao enviarMensagem(Solicitacao s, Usuario autor, String texto, Instant agora) {
+    throw new TransicaoInvalidaException(...);
+}
+
+// EstadoEmAtendimento: só os dois envolvidos escrevem
+public MensagemSolicitacao enviarMensagem(Solicitacao s, Usuario autor, String texto, Instant agora) {
+    if (!s.foiAbertaPor(autor) && !s.estaSendoAtendidaPor(autor)) throw new AcessoNegadoException(...);
+    return s.criarMensagem(autor, texto, agora);
+}
+```
 
 📁 `backend/src/main/java/br/monitoriamap/solicitacao/`
 `Solicitacao.java`, `StatusSolicitacao.java`, `EstadoSolicitacao.java`, `Estado*.java`
@@ -144,7 +162,12 @@ sequenceDiagram
 - O evento carrega um **DTO**, não a entidade JPA, porque os observadores rodam depois do commit e em outra
   thread, onde a sessão do Hibernate já foi fechada.
 
-📁 `solicitacao/SolicitacaoAlteradaEvent.java`, `notificacao/DespachanteDeNotificacoes.java`
+- **Um segundo evento, o mesmo mecanismo.** Uma mensagem nova na conversa publica
+  `MensagemEnviadaEvent`. O despachante ganhou um segundo método de escuta, e o `ConversaService` não
+  sabe quem vai entregar a mensagem.
+
+📁 `solicitacao/SolicitacaoAlteradaEvent.java`, `solicitacao/MensagemEnviadaEvent.java`,
+`notificacao/DespachanteDeNotificacoes.java`
 
 ---
 
@@ -160,8 +183,15 @@ Uma interface com várias implementações intercambiáveis:
 ```java
 public interface Notificador {
     void notificar(SolicitacaoAlteradaEvent evento);
+
+    // Novo tipo de aviso: método com implementação padrão vazia.
+    default void notificarMensagem(MensagemEnviadaEvent evento) { }
 }
 ```
+
+Quando surgiu a conversa, só o `PainelTempoRealNotificador` passou a entregar mensagens
+(sobrescrevendo `notificarMensagem`). O `EmailNotificador` não mudou uma linha: o método `default`
+deixa cada canal escolher se participa.
 
 ```java
 @Component class EmailNotificador implements Notificador { ... }

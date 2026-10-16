@@ -33,7 +33,7 @@ export function Privacidade() {
           Monitoria MAP
         </div>
         <h1>Política de privacidade</h1>
-        <p className="secundario">Última atualização: 14 de outubro de 2026.</p>
+        <p className="secundario">Última atualização: 16 de outubro de 2026.</p>
 
         <p>
           O Monitoria MAP é o sistema de pedidos de ajuda da monitoria de Métodos Avançados em Programação (MAP) da
@@ -49,6 +49,10 @@ export function Privacidade() {
             <li>
               <strong>Dos seus pedidos de ajuda:</strong> título, descrição, assunto, modalidade, link da reunião (se
               houver), observações do monitor e o histórico de quando cada etapa aconteceu.
+            </li>
+            <li>
+              <strong>Da conversa do pedido:</strong> as mensagens trocadas entre você e o monitor que assumiu o
+              pedido, com data e hora.
             </li>
             <li>
               <strong>Seu papel no sistema:</strong> aluno, monitor ou administrador.
@@ -70,6 +74,10 @@ export function Privacidade() {
           <ul>
             <li>Os outros alunos não veem os seus pedidos.</li>
             <li>Os monitores veem o seu nome, foto e os pedidos que você abriu, para poder atender.</li>
+            <li>
+              A conversa de um pedido é vista só por você, pelo monitor responsável e pela coordenação da
+              monitoria, que pode ler (mas não escrever) em caso de problema. Os outros monitores não a veem.
+            </li>
             <li>O seu e-mail só aparece para você e para a coordenação da monitoria (administradores).</li>
           </ul>
         </Secao>
