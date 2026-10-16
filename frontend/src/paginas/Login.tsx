@@ -19,7 +19,11 @@ export function Login() {
     queryKey: ['config-login'],
     queryFn: () => api<ConfiguracaoLogin>('/api/auth/config'),
     staleTime: Infinity,
+    // No plano gratuito a API "dorme" e leva até ~1 min para acordar: insiste por um tempo.
+    retry: 8,
+    retryDelay: (tentativa) => Math.min(10_000, 2_000 * 2 ** tentativa),
   });
+  const acordando = useDemorou(config.isPending, 4_000);
   const { entrarComGoogle } = useAutenticacao();
   const [erro, setErro] = useState<unknown>(null);
   const dominios = config.data?.dominiosPermitidos ?? [];
@@ -39,7 +43,20 @@ export function Login() {
         </p>
 
         <div className="login-acesso">
-          {config.isError && <CaixaErro erro={config.error} />}
+          {acordando && (
+            <p className="secundario" role="status" aria-live="polite" style={{ fontSize: 15 }}>
+              Acordando o servidor… isso leva até um minuto quando ninguém usou o sistema há algum tempo.
+            </p>
+          )}
+
+          {config.isError && (
+            <>
+              <CaixaErro erro={new Error('O servidor não respondeu. Espere alguns segundos e tente de novo.')} />
+              <button className="botao botao-fantasma" style={{ marginTop: 12 }} onClick={() => config.refetch()}>
+                Tentar de novo
+              </button>
+            </>
+          )}
 
           {config.data?.googleClientId && (
             <>
@@ -148,4 +165,15 @@ function ExemploAoVivo() {
       </div>
     </section>
   );
+}
+
+/** Fica verdadeiro quando `ativo` continua verdadeiro por mais de `ms` milissegundos. */
+function useDemorou(ativo: boolean, ms: number) {
+  const [demorou, setDemorou] = useState(false);
+  useEffect(() => {
+    if (!ativo) return setDemorou(false);
+    const t = setTimeout(() => setDemorou(true), ms);
+    return () => clearTimeout(t);
+  }, [ativo, ms]);
+  return demorou;
 }
