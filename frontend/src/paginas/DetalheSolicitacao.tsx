@@ -5,6 +5,7 @@ import { useSolicitacao } from '../api/consultas';
 import { podeAtender, useUsuario } from '../auth/Autenticacao';
 import { AcoesSolicitacao } from '../componentes/AcoesSolicitacao';
 import { Avatar, CaixaErro, Carregando, SeloStatus } from '../componentes/Basicos';
+import { Conversa } from '../componentes/Conversa';
 import { Etapas } from '../componentes/Etapas';
 import { LinkReuniao, podeEditarLink } from '../componentes/LinkReuniao';
 import { duracao, formatarDataHora, rotuloEvento, rotuloModalidade } from '../util/formatar';
@@ -88,6 +89,8 @@ export function DetalheSolicitacao() {
               <AcoesSolicitacao solicitacao={s} usuario={usuario} />
             </AreaDeAcoes>
           </article>
+
+          <Conversa solicitacao={s} usuario={usuario} />
 
           <section className="cartao cartao-corpo" aria-labelledby="historico-titulo">
             <h2 id="historico-titulo">Histórico</h2>

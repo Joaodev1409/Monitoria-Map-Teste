@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { conferirSessao } from '../api/cliente';
-import { chaves } from '../api/consultas';
-import type { EventoTempoReal, Usuario } from '../api/tipos';
+import { acrescentarMensagem, chaves } from '../api/consultas';
+import type { EventoTempoReal, Mensagem, Usuario } from '../api/tipos';
 import { podeAtender } from '../auth/Autenticacao';
 import { primeiroNome } from '../util/formatar';
 import { useAvisos } from '../componentes/Avisos';
@@ -21,6 +22,9 @@ export function useTempoReal(usuario: Usuario | null): boolean {
   const [conectado, setConectado] = useState(false);
   const usuarioRef = useRef(usuario);
   usuarioRef.current = usuario;
+  const { pathname } = useLocation();
+  const caminhoRef = useRef(pathname);
+  caminhoRef.current = pathname;
 
   useEffect(() => {
     if (!usuario) return;
@@ -49,6 +53,25 @@ export function useTempoReal(usuario: Usuario | null): boolean {
       }
     };
 
+    // Mensagem nova na conversa: entra na tela na hora. Se a pessoa estiver em outra página
+    // (ou com a aba em segundo plano), também ganha um aviso e o bip.
+    const aoReceberMensagem = (evento: MessageEvent<string>) => {
+      const mensagem = JSON.parse(evento.data) as Mensagem;
+      cliente.setQueryData<Mensagem[]>(chaves.mensagens(mensagem.solicitacaoId), (lista) =>
+        acrescentarMensagem(lista, mensagem),
+      );
+
+      const eu = usuarioRef.current;
+      if (!eu || mensagem.autor.id === eu.id) return;
+      const vendoAConversa =
+        document.visibilityState === 'visible' && caminhoRef.current === `/solicitacoes/${mensagem.solicitacaoId}`;
+      if (vendoAConversa) return;
+      const quem = primeiroNome(mensagem.autor.nome);
+      const trecho = mensagem.texto.replace(/\s+/g, ' ').slice(0, 80);
+      avisar(`${quem}: ${trecho}`, 'info');
+      notificarNavegador(`Mensagem de ${quem}`, trecho, true);
+    };
+
     const conectar = () => {
       fonte = new EventSource('/api/eventos/stream');
       fonte.onopen = () => {
@@ -56,8 +79,10 @@ export function useTempoReal(usuario: Usuario | null): boolean {
         tentativas = 0;
         // Recarrega o que pode ter mudado enquanto estávamos desconectados.
         cliente.invalidateQueries({ queryKey: chaves.solicitacoes });
+        cliente.invalidateQueries({ queryKey: ['mensagens'] });
       };
       fonte.addEventListener('solicitacao', aoReceber as EventListener);
+      fonte.addEventListener('mensagem', aoReceberMensagem as EventListener);
       fonte.onerror = () => {
         setConectado(false);
         if (fonte?.readyState === EventSource.CLOSED && ativo) {

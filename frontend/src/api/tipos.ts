@@ -97,6 +97,15 @@ export interface ResumoRelatorio {
   porSemana: Contagem[];
 }
 
+/** Mensagem da conversa do pedido (entre o aluno e o monitor responsável). */
+export interface Mensagem {
+  id: number;
+  solicitacaoId: number;
+  autor: UsuarioResumo;
+  texto: string;
+  enviadaEm: string;
+}
+
 export interface EventoTempoReal {
   tipo: TipoEvento;
   solicitacao: Solicitacao;

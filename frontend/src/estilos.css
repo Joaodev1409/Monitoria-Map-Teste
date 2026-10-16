@@ -1451,6 +1451,220 @@ a.pilula {
   color: var(--aberta-texto);
 }
 
+/* ============================ Conversa ============================ */
+/* Balões em tons de papel: a cor de ação fica só no botão Enviar (DESIGN.md). */
+.mensagens {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-height: min(60vh, 560px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  margin: 16px -8px 0;
+  padding: 4px 8px;
+}
+
+.mensagens:focus-visible {
+  border-radius: var(--raio-controle);
+}
+
+.conversa-vazia {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  padding: 18px;
+  border-radius: 16px;
+  background: var(--cartao-2);
+  color: var(--tinta-2);
+}
+
+.conversa-vazia svg {
+  flex-shrink: 0;
+  color: var(--tinta-3);
+}
+
+.grupo-mensagens {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  max-width: min(100%, 560px);
+  animation: chegar-mensagem 0.35s var(--saida);
+}
+
+.grupo-mensagens.minhas {
+  align-self: flex-end;
+}
+
+.grupo-corpo {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  min-width: 0;
+}
+
+.minhas .grupo-corpo {
+  align-items: flex-end;
+}
+
+.grupo-autor {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  margin: 0 4px 2px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--tinta-2);
+}
+
+.grupo-autor time {
+  font-weight: 400;
+  color: var(--tinta-3);
+}
+
+.mensagem {
+  max-width: 100%;
+  padding: 10px 14px;
+  border-radius: 18px;
+  border: 1px solid var(--borda);
+  background: var(--cartao-2);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.minhas .mensagem {
+  border-color: transparent;
+  background: var(--fundo-fundo);
+}
+
+/* O canto do lado de quem fala fica menos arredondado, como um "rabinho" discreto. */
+.grupo-corpo .mensagem:last-child {
+  border-bottom-left-radius: 6px;
+}
+
+.minhas .grupo-corpo .mensagem:last-child {
+  border-bottom-left-radius: 18px;
+  border-bottom-right-radius: 6px;
+}
+
+.mensagem p {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.mensagem p + p,
+.mensagem p + pre,
+.mensagem pre + p,
+.mensagem pre + pre {
+  margin-top: 8px;
+}
+
+.mensagem a {
+  color: var(--acao-texto);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.mensagem code {
+  font-family: var(--fonte-mono);
+  font-size: 0.9em;
+}
+
+.mensagem p code {
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: var(--cartao);
+  border: 1px solid var(--borda);
+}
+
+.mensagem pre {
+  margin: 0;
+  max-width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--cartao);
+  border: 1px solid var(--borda);
+  overflow-x: auto;
+  line-height: 1.45;
+  tab-size: 4;
+}
+
+@keyframes chegar-mensagem {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+.conversa-nota {
+  margin: 18px 0 0;
+  padding-top: 16px;
+  border-top: 1px solid var(--borda);
+  color: var(--tinta-2);
+  font-size: 15px;
+}
+
+.compositor {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--borda);
+}
+
+.compositor-linha {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.compositor textarea.entrada {
+  min-height: 48px;
+  max-height: 180px;
+  resize: none;
+  line-height: 1.45;
+}
+
+.compositor .botao {
+  min-height: 48px;
+  flex-shrink: 0;
+}
+
+.compositor .botao:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.compositor .dica,
+.compositor .erro {
+  margin: 8px 0 0;
+  font-size: 14px;
+  color: var(--tinta-3);
+}
+
+.compositor .erro {
+  color: var(--perigo);
+}
+
+@media (max-width: 560px) {
+  .rotulo-enviar {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+
+  .compositor .botao {
+    width: 48px;
+    padding: 0;
+  }
+
+  .grupo-mensagens {
+    max-width: 100%;
+  }
+}
+
 /* Linhas e cartões inteiros clicáveis: o link do título se estica sobre o item todo,
    e os botões dentro dele ficam por cima, continuando clicáveis. */
 .linha:has(a.linha-titulo),

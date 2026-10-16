@@ -2,6 +2,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, enviar } from './cliente';
 import type {
+  Mensagem,
   NovaSolicitacao,
   Papel,
   ResumoRelatorio,
@@ -17,6 +18,8 @@ export const chaves = {
   fila: (status: StatusSolicitacao) => ['solicitacoes', 'status', status] as const,
   atendimentos: ['solicitacoes', 'atendimentos'] as const,
   detalhe: (id: number) => ['solicitacoes', 'detalhe', id] as const,
+  // Fora de 'solicitacoes' de propósito: mudar a fila não precisa recarregar as conversas.
+  mensagens: (id: number) => ['mensagens', id] as const,
   topicos: (todos: boolean) => ['topicos', todos] as const,
   usuarios: ['usuarios'] as const,
   relatorio: (de: string, ate: string) => ['relatorio', de, ate] as const,
@@ -37,6 +40,31 @@ export const useMeusAtendimentos = () =>
 
 export const useSolicitacao = (id: number) =>
   useQuery({ queryKey: chaves.detalhe(id), queryFn: () => api<Solicitacao>(`/api/solicitacoes/${id}`) });
+
+export const useMensagens = (solicitacaoId: number, habilitado: boolean) =>
+  useQuery({
+    queryKey: chaves.mensagens(solicitacaoId),
+    queryFn: () => api<Mensagem[]>(`/api/solicitacoes/${solicitacaoId}/mensagens`),
+    enabled: habilitado,
+  });
+
+/** Acrescenta uma mensagem à conversa em cache sem duplicar (ela chega pela resposta e pelo canal ao vivo). */
+export function acrescentarMensagem(lista: Mensagem[] | undefined, nova: Mensagem): Mensagem[] | undefined {
+  if (!lista) return lista;
+  return lista.some((m) => m.id === nova.id) ? lista : [...lista, nova];
+}
+
+export function useEnviarMensagem() {
+  const cliente = useQueryClient();
+  return useMutation({
+    mutationFn: ({ solicitacaoId, texto }: { solicitacaoId: number; texto: string }) =>
+      enviar<Mensagem>(`/api/solicitacoes/${solicitacaoId}/mensagens`, 'POST', { texto }),
+    onSuccess: (mensagem) =>
+      cliente.setQueryData<Mensagem[]>(chaves.mensagens(mensagem.solicitacaoId), (lista) =>
+        acrescentarMensagem(lista, mensagem),
+      ),
+  });
+}
 
 /** "Outro assunto" (ou qualquer tópico que comece com "Outro") vai sempre para o fim da lista. */
 const outroPorUltimo = (a: Topico, b: Topico) =>
