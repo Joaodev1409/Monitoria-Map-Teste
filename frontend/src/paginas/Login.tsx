@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { GoogleLogin, GoogleOAuthProvider } from '@react-oauth/google';
-import { Eye, ShieldCheck } from 'lucide-react';
+import { Eye, LoaderCircle, ShieldCheck } from 'lucide-react';
 import { api } from '../api/cliente';
 import type { ConfiguracaoLogin, Solicitacao } from '../api/tipos';
 import { useAutenticacao } from '../auth/Autenticacao';
@@ -26,6 +26,9 @@ export function Login() {
   const acordando = useDemorou(config.isPending, 4_000);
   const { entrarComGoogle } = useAutenticacao();
   const [erro, setErro] = useState<unknown>(null);
+  // Entre o "ok" do Google e a resposta da nossa API passam alguns segundos (mais se a API
+  // estiver acordando): sem um aviso, parece que o clique não fez nada.
+  const [entrando, setEntrando] = useState(false);
   const dominios = config.data?.dominiosPermitidos ?? [];
 
   return (
@@ -60,20 +63,32 @@ export function Login() {
 
           {config.data?.googleClientId && (
             <>
-              <GoogleOAuthProvider clientId={config.data.googleClientId}>
-                <GoogleLogin
-                  onSuccess={(resposta) => {
-                    setErro(null);
-                    if (resposta.credential) entrarComGoogle(resposta.credential).catch(setErro);
-                  }}
-                  onError={() => setErro(new Error('Não foi possível entrar com o Google. Tente de novo.'))}
-                  text="signin_with"
-                  shape="pill"
-                  size="large"
-                  width="360"
-                  locale="pt-BR"
-                />
-              </GoogleOAuthProvider>
+              {entrando ? (
+                <p className="login-entrando" role="status" aria-live="polite">
+                  <LoaderCircle size={20} aria-hidden className="girando" />
+                  Entrando com a sua conta da UEPB…
+                </p>
+              ) : (
+                <GoogleOAuthProvider clientId={config.data.googleClientId}>
+                  <GoogleLogin
+                    onSuccess={(resposta) => {
+                      if (!resposta.credential) return;
+                      setErro(null);
+                      setEntrando(true);
+                      entrarComGoogle(resposta.credential).catch((e) => {
+                        setEntrando(false);
+                        setErro(e);
+                      });
+                    }}
+                    onError={() => setErro(new Error('Não foi possível entrar com o Google. Tente de novo.'))}
+                    text="signin_with"
+                    shape="pill"
+                    size="large"
+                    width="360"
+                    locale="pt-BR"
+                  />
+                </GoogleOAuthProvider>
+              )}
               {dominios.length > 0 && (
                 <p className="secundario" style={{ display: 'flex', gap: 8, marginTop: 16, fontSize: 15 }}>
                   <ShieldCheck size={18} aria-hidden style={{ flexShrink: 0, marginTop: 2, color: 'var(--acao-texto)' }} />

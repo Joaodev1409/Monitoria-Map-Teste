@@ -1696,6 +1696,27 @@ table.tabela {
   max-width: 400px;
 }
 
+/* Ocupa o mesmo espaço do botão do Google, para a tela não pular ao trocar. */
+.login-entrando {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  max-width: 360px;
+  min-height: 44px;
+  margin: 0;
+  border: 1px solid var(--borda-forte);
+  border-radius: 999px;
+  color: var(--tinta-2);
+  font-weight: 600;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-entrando .girando {
+    animation-duration: 2.4s;
+  }
+}
+
 .login-exemplo {
   position: relative;
 }
