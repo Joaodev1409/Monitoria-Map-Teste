@@ -61,9 +61,29 @@ jdbc:postgresql://HOST/DATABASE?sslmode=require
 4. Anote o endereço da API (ex.: `https://monitoria-map-api.onrender.com`) e confira
    `https://monitoria-map-api.onrender.com/actuator/health` → `{"status":"UP"}`.
 
-> No plano gratuito a API "dorme" após ~15 min sem uso; o primeiro acesso depois disso demora 30–60 s
-> (o site reconecta sozinho). Para os horários de monitoria, crie um monitor gratuito no
-> https://uptimerobot.com chamando o `/actuator/health` a cada 10 minutos.
+> No plano gratuito a API "dorme" após ~15 min sem uso; o primeiro acesso depois disso espera ela subir
+> de novo, e o site mostra uma tela de abertura enquanto isso. Para os horários de monitoria, crie um monitor
+> gratuito no https://uptimerobot.com chamando o `/actuator/health` a cada 10 minutos.
+
+### Por que o Dockerfile "treina" a aplicação no build
+
+A máquina gratuita do Render tem só 0,1 de CPU. Ao subir, a JVM passa a maior parte do tempo lendo e
+verificando milhares de classes (Spring, Hibernate, Tomcat…). Por isso o `backend/Dockerfile`:
+
+1. **Faz uma subida de treino durante o build** (`-Dspring.context.exit=onRefresh`). O app sobe até o
+   contexto do Spring ficar pronto e encerra, e a JVM grava as classes já processadas em
+   `application.jsa` (CDS, *Class Data Sharing*). Na subida de verdade ela só mapeia esse arquivo.
+   Como não há banco no build, o treino desliga o Flyway e o acesso do Hibernate ao banco.
+2. **Usa flags pensadas para pouca CPU**: só o compilador rápido (`-XX:TieredStopAtLevel=1`) e o coletor
+   de lixo mais simples (`-XX:+UseSerialGC`).
+
+Medição numa simulação da máquina do Render (`docker run --cpus=0.1 --memory=512m`, banco já migrado),
+do container criado até o `/actuator/health` responder:
+
+| Imagem | Rodada 1 | Rodada 2 |
+|---|---|---|
+| Antes (jar comum) | 268 s | 198 s |
+| Depois (CDS + flags) | 59 s | 47 s |
 
 ## 4. Site: Vercel
 
