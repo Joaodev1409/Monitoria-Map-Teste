@@ -254,20 +254,26 @@ function horario(iso: string) {
  */
 function TextoDaMensagem({ texto }: { texto: string }) {
   const partes: ReactNode[] = [];
-  const blocos = /```[^\n`]*\n?([\s\S]*?)```/g;
+  // O nome da linguagem (```java) só conta se vier sozinho na primeira linha. Sem essa
+  // exigência, ```notificar()``` numa linha só virava "linguagem notificar()" e um bloco vazio.
+  const blocos = /```(?:[a-zA-Z0-9+#._-]*\n)?([\s\S]*?)```/g;
   let inicio = 0;
   for (const achado of texto.matchAll(blocos)) {
     const posicao = achado.index ?? 0;
     if (posicao > inicio) partes.push(...emLinha(texto.slice(inicio, posicao), partes.length));
-    partes.push(
-      <pre key={`b${partes.length}`}>
-        <code>{achado[1].replace(/\n$/, '')}</code>
-      </pre>,
-    );
+    const codigo = achado[1].replace(/\n$/, '');
+    if (codigo.trim()) {
+      partes.push(
+        <pre key={`b${partes.length}`}>
+          <code>{codigo}</code>
+        </pre>,
+      );
+    }
     inicio = posicao + achado[0].length;
   }
   if (inicio < texto.length) partes.push(...emLinha(texto.slice(inicio), partes.length));
-  return <>{partes}</>;
+  // Só crases, sem nada dentro: mostra o que foi digitado em vez de um balão vazio.
+  return partes.length > 0 ? <>{partes}</> : <p>{texto}</p>;
 }
 
 function emLinha(trecho: string, base: number): ReactNode[] {
