@@ -22,13 +22,15 @@ export function Conta() {
       <section className="cartao cartao-corpo">
         <div className="pessoa">
           <Avatar nome={usuario.nome} foto={usuario.fotoUrl} tamanho={56} />
+          {/* O papel fica embaixo do e-mail (e não à direita): no celular, nome e e-mail longos
+              não deixavam espaço e o selo empurrava a tela para o lado. */}
           <div>
             <strong style={{ fontSize: 18 }}>{usuario.nome}</strong>
             <small>{usuario.email}</small>
+            <span className="selo selo-neutro" style={{ marginTop: 8 }}>
+              {papeis[usuario.papel]}
+            </span>
           </div>
-          <span className="selo selo-neutro" style={{ marginLeft: 'auto' }}>
-            {papeis[usuario.papel]}
-          </span>
         </div>
       </section>
 
@@ -38,13 +40,14 @@ export function Conta() {
       <section className="cartao">
         <ul className="linhas">
           <li className="linha" style={{ flexWrap: 'wrap' }}>
-            <div className="linha-corpo">
+            {/* Base de 220px: sem espaço para o texto e os botões lado a lado, os botões descem. */}
+            <div className="linha-corpo" style={{ flexBasis: 220 }}>
               <strong>Aparência</strong>
               <p className="secundario" style={{ fontSize: 14 }}>
                 Siga o celular ou escolha claro ou escuro.
               </p>
             </div>
-            <div className="segmentos" role="group" aria-label="Aparência">
+            <div className="segmentos segmentos-cheio" role="group" aria-label="Aparência">
               {(
                 [
                   ['sistema', Monitor, 'Sistema'],

@@ -1295,6 +1295,25 @@ a.pilula {
   box-shadow: 0 1px 3px rgb(40 28 14 / 0.12);
 }
 
+/* Poucas opções que precisam caber inteiras (ex.: Aparência): dividem a largura em vez de rolar. */
+@media (max-width: 560px) {
+  .segmentos-cheio {
+    display: flex;
+    width: 100%;
+  }
+
+  .segmentos-cheio button {
+    flex: 1;
+    padding: 0 8px;
+  }
+}
+
+@media (max-width: 359px) {
+  .segmentos-cheio button svg {
+    display: none;
+  }
+}
+
 /* Interruptor */
 .interruptor {
   position: relative;
@@ -1368,6 +1387,12 @@ a.pilula {
   display: block;
   color: var(--tinta-2);
   font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+/* O bloco de texto ao lado do avatar pode encolher: e-mails longos quebram em vez de vazar. */
+.pessoa > div {
+  min-width: 0;
 }
 
 /* ============================ Detalhe ============================ */
