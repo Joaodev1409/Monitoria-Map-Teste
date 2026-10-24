@@ -1,5 +1,8 @@
 package br.monitoriamap.solicitacao;
 
+import java.util.EnumSet;
+import java.util.Set;
+
 /**
  * Status persistido no banco. Cada constante carrega o objeto de estado (padrão State)
  * que sabe quais transições são permitidas a partir dela.
@@ -11,7 +14,7 @@ public enum StatusSolicitacao {
     CANCELADA("cancelada", new EstadoCancelada());
 
     /** Ainda "vivas": na fila ou sendo atendidas. */
-    public static final java.util.Set<StatusSolicitacao> ATIVOS = java.util.EnumSet.of(ABERTA, EM_ATENDIMENTO);
+    public static final Set<StatusSolicitacao> ATIVOS = EnumSet.of(ABERTA, EM_ATENDIMENTO);
 
     private final String descricao;
     private final EstadoSolicitacao estado;
@@ -27,9 +30,5 @@ public enum StatusSolicitacao {
 
     EstadoSolicitacao estado() {
         return estado;
-    }
-
-    public boolean isFinal() {
-        return this == CONCLUIDA || this == CANCELADA;
     }
 }

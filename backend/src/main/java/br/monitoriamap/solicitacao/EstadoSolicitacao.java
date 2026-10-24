@@ -47,14 +47,11 @@ sealed interface EstadoSolicitacao
     }
 
     /**
-     * A conversa só existe enquanto há atendimento: antes de alguém assumir não há com quem
-     * falar, e depois de concluir ela fica só para leitura.
+     * A conversa só existe enquanto há atendimento. Por padrão ela já terminou (é o caso dos
+     * estados finais); {@link EstadoAberta} e {@link EstadoEmAtendimento} respondem do seu jeito.
+     * Repare que não há {@code switch (status)}: cada estado decide sozinho.
      */
     default MensagemSolicitacao enviarMensagem(Solicitacao solicitacao, Usuario autor, String texto, Instant agora) {
-        throw new TransicaoInvalidaException(switch (status()) {
-            case ABERTA -> "A conversa começa quando um monitor assumir o pedido.";
-            case CONCLUIDA, CANCELADA -> "A conversa foi encerrada com o atendimento.";
-            case EM_ATENDIMENTO -> "Não é possível enviar mensagens agora.";
-        });
+        throw new TransicaoInvalidaException("A conversa foi encerrada com o atendimento.");
     }
 }

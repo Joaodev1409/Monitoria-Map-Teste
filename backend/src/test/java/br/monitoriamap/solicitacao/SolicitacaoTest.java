@@ -313,7 +313,6 @@ class SolicitacaoTest {
             assertThatThrownBy(() -> solicitacao.assumir(bruno, depois(3))).isInstanceOf(TransicaoInvalidaException.class);
             assertThatThrownBy(() -> solicitacao.devolver(ana, depois(3))).isInstanceOf(TransicaoInvalidaException.class);
             assertThatThrownBy(() -> solicitacao.cancelar(aluno, depois(3))).isInstanceOf(TransicaoInvalidaException.class);
-            assertThat(StatusSolicitacao.CONCLUIDA.isFinal()).isTrue();
         }
 
         @Test

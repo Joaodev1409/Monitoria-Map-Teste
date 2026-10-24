@@ -26,18 +26,26 @@ final class EstadoAberta implements EstadoSolicitacao {
 
     @Override
     public void cancelar(Solicitacao solicitacao, Usuario usuario, Instant agora) {
-        if (!solicitacao.foiAbertaPor(usuario) && !usuario.isAdmin()) {
-            throw new AcessoNegadoException("Só quem abriu a solicitação pode cancelá-la.");
-        }
+        exigirDonoOuAdmin(solicitacao, usuario, "Só quem abriu a solicitação pode cancelá-la.");
         solicitacao.registrarCancelamento(usuario, agora);
     }
 
     /** Enquanto ninguém assumiu, só o próprio aluno (ou um admin) mexe no link. */
     @Override
     public void definirLink(Solicitacao solicitacao, Usuario usuario, String link, Instant agora) {
-        if (!solicitacao.foiAbertaPor(usuario) && !usuario.isAdmin()) {
-            throw new AcessoNegadoException("Só quem abriu a solicitação pode definir o link agora.");
-        }
+        exigirDonoOuAdmin(solicitacao, usuario, "Só quem abriu a solicitação pode definir o link agora.");
         solicitacao.registrarLink(usuario, link, agora);
+    }
+
+    /** Ainda não há com quem conversar: a conversa abre quando alguém assume. */
+    @Override
+    public MensagemSolicitacao enviarMensagem(Solicitacao solicitacao, Usuario autor, String texto, Instant agora) {
+        throw new TransicaoInvalidaException("A conversa começa quando um monitor assumir o pedido.");
+    }
+
+    private static void exigirDonoOuAdmin(Solicitacao solicitacao, Usuario usuario, String mensagem) {
+        if (!solicitacao.foiAbertaPor(usuario) && !usuario.isAdmin()) {
+            throw new AcessoNegadoException(mensagem);
+        }
     }
 }
