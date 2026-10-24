@@ -78,26 +78,26 @@ public class RelatorioService {
     }
 
     ResumoRelatorio resumir(LocalDate de, LocalDate ate, List<Solicitacao> lista) {
-        Map<StatusSolicitacao, Long> porStatus = new EnumMap<>(StatusSolicitacao.class);
-        for (StatusSolicitacao status : StatusSolicitacao.values()) {
-            porStatus.put(status, 0L);
-        }
-        lista.forEach(s -> porStatus.merge(s.getStatus(), 1L, Long::sum));
-
-        Map<Modalidade, Long> porModalidade = new EnumMap<>(Modalidade.class);
-        for (Modalidade modalidade : Modalidade.values()) {
-            porModalidade.put(modalidade, 0L);
-        }
-        lista.forEach(s -> porModalidade.merge(s.getModalidade(), 1L, Long::sum));
-
         return new ResumoRelatorio(
-                de, ate, lista.size(), porStatus,
+                de, ate, lista.size(),
+                contarPor(StatusSolicitacao.class, lista, Solicitacao::getStatus),
                 mediaEmMinutos(lista, Solicitacao::tempoDeEspera),
                 mediaEmMinutos(lista, Solicitacao::tempoDeAtendimento),
                 desempenhoPorMonitor(lista),
                 contarPorTopico(lista),
-                porModalidade,
+                contarPor(Modalidade.class, lista, Solicitacao::getModalidade),
                 contarPorSemana(lista));
+    }
+
+    /** Quantas solicitações há em cada valor do enum (os que não aparecem ficam com zero). */
+    private static <E extends Enum<E>> Map<E, Long> contarPor(Class<E> tipo, List<Solicitacao> lista,
+                                                              Function<Solicitacao, E> campo) {
+        Map<E, Long> contagem = new EnumMap<>(tipo);
+        for (E valor : tipo.getEnumConstants()) {
+            contagem.put(valor, 0L);
+        }
+        lista.forEach(s -> contagem.merge(campo.apply(s), 1L, Long::sum));
+        return contagem;
     }
 
     private List<DesempenhoMonitor> desempenhoPorMonitor(List<Solicitacao> lista) {

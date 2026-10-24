@@ -1,5 +1,6 @@
 package br.monitoriamap.usuario;
 
+import br.monitoriamap.common.RecursoNaoEncontradoException;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Collection;
@@ -13,4 +14,9 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
     List<Usuario> findByPapelInAndAtivoTrue(Collection<Papel> papeis);
 
     List<Usuario> findAllByOrderByNomeAsc();
+
+    /** O usuário com este id, ou 404. */
+    default Usuario buscar(Long id) {
+        return findById(id).orElseThrow(() -> new RecursoNaoEncontradoException("Usuário", id));
+    }
 }

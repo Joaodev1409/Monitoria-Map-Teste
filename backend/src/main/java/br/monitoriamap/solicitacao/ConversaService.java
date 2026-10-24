@@ -37,14 +37,14 @@ public class ConversaService {
 
     @Transactional(readOnly = true)
     public List<MensagemDTO> listar(Long solicitacaoId, Long usuarioId) {
-        Solicitacao solicitacao = carregarParaLeitura(solicitacaoId, buscarUsuario(usuarioId));
+        Solicitacao solicitacao = carregarParaLeitura(solicitacaoId, usuarios.buscar(usuarioId));
         return mensagens.findBySolicitacaoIdOrderByEnviadaEmAscIdAsc(solicitacao.getId()).stream()
                 .map(MensagemDTO::de)
                 .toList();
     }
 
     public MensagemDTO enviar(Long solicitacaoId, Long usuarioId, String texto) {
-        Usuario autor = buscarUsuario(usuarioId);
+        Usuario autor = usuarios.buscar(usuarioId);
         Solicitacao solicitacao = carregarParaLeitura(solicitacaoId, autor);
 
         MensagemSolicitacao mensagem = mensagens.save(solicitacao.enviarMensagem(autor, texto, relogio.instant()));
@@ -60,18 +60,13 @@ public class ConversaService {
      * Monitor que não participa recebe 403: ele vê o pedido na fila, mas a conversa não é dele.
      */
     private Solicitacao carregarParaLeitura(Long solicitacaoId, Usuario usuario) {
-        Solicitacao solicitacao = solicitacoes.findById(solicitacaoId)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Solicitação", solicitacaoId));
+        Solicitacao solicitacao = solicitacoes.buscar(solicitacaoId);
         if (!solicitacao.podeLerConversa(usuario)) {
-            if (!usuario.podeAtender()) {
+            if (!solicitacao.podeSerVistaPor(usuario)) {
                 throw new RecursoNaoEncontradoException("Solicitação", solicitacaoId);
             }
             throw new AcessoNegadoException("A conversa é só entre o aluno e o monitor responsável.");
         }
         return solicitacao;
-    }
-
-    private Usuario buscarUsuario(Long id) {
-        return usuarios.findById(id).orElseThrow(() -> new RecursoNaoEncontradoException("Usuário", id));
     }
 }

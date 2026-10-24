@@ -10,12 +10,15 @@ import static br.monitoriamap.Fixtures.topico;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class TopicoServiceTest {
 
-    private final TopicoRepository topicos = mock(TopicoRepository.class);
+    // CALLS_REAL_METHODS: o dublê executa os métodos default do repositório (ex.: buscar),
+    // e só as consultas do Spring Data (abstratas) ficam a cargo do teste.
+    private final TopicoRepository topicos = mock(TopicoRepository.class, CALLS_REAL_METHODS);
     private final TopicoService servico = new TopicoService(topicos);
 
     @Test

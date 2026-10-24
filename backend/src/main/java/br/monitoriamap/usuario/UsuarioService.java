@@ -1,6 +1,5 @@
 package br.monitoriamap.usuario;
 
-import br.monitoriamap.common.RecursoNaoEncontradoException;
 import br.monitoriamap.common.RegraNegocioException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,7 +18,7 @@ public class UsuarioService {
 
     @Transactional(readOnly = true)
     public UsuarioDTO buscar(Long id) {
-        return UsuarioDTO.de(carregar(id));
+        return UsuarioDTO.de(usuarios.buscar(id));
     }
 
     @Transactional(readOnly = true)
@@ -31,7 +30,7 @@ public class UsuarioService {
         if (id.equals(quemAlteraId) && papel != Papel.ADMIN) {
             throw new RegraNegocioException("Você não pode remover o seu próprio acesso de administrador.");
         }
-        Usuario usuario = carregar(id);
+        Usuario usuario = usuarios.buscar(id);
         usuario.alterarPapel(papel);
         return UsuarioDTO.de(usuario);
     }
@@ -40,18 +39,14 @@ public class UsuarioService {
         if (id.equals(quemAlteraId) && !ativo) {
             throw new RegraNegocioException("Você não pode desativar a sua própria conta.");
         }
-        Usuario usuario = carregar(id);
+        Usuario usuario = usuarios.buscar(id);
         usuario.definirAtivo(ativo);
         return UsuarioDTO.de(usuario);
     }
 
     public UsuarioDTO atualizarTelefone(Long id, String telefone) {
-        Usuario usuario = carregar(id);
+        Usuario usuario = usuarios.buscar(id);
         usuario.definirTelefone(telefone == null || telefone.isBlank() ? null : telefone.trim());
         return UsuarioDTO.de(usuario);
-    }
-
-    private Usuario carregar(Long id) {
-        return usuarios.findById(id).orElseThrow(() -> new RecursoNaoEncontradoException("Usuário", id));
     }
 }

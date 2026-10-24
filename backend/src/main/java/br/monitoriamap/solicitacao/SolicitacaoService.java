@@ -49,7 +49,7 @@ public class SolicitacaoService {
     }
 
     public SolicitacaoDTO abrir(Long alunoId, NovaSolicitacaoRequest pedido) {
-        Usuario aluno = buscarUsuario(alunoId);
+        Usuario aluno = usuarios.buscar(alunoId);
         long ativas = solicitacoes.countByAlunoIdAndStatusIn(alunoId, StatusSolicitacao.ATIVOS);
         if (ativas >= limites.solicitacoesAtivasPorAluno()) {
             throw new RegraNegocioException("Você já tem " + ativas + " solicitações em andamento. "
@@ -89,11 +89,9 @@ public class SolicitacaoService {
 
     @Transactional(readOnly = true)
     public SolicitacaoDTO detalhar(Long id, Long usuarioId) {
-        Solicitacao solicitacao = solicitacoes.findDetalhadaById(id)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Solicitação", id));
-        Usuario usuario = buscarUsuario(usuarioId);
+        Solicitacao solicitacao = solicitacoes.buscarDetalhada(id);
         // 404 (e não 403) para o pedido de outro aluno: não confirmamos nem que ele existe.
-        if (!usuario.podeAtender() && !solicitacao.foiAbertaPor(usuario)) {
+        if (!solicitacao.podeSerVistaPor(usuarios.buscar(usuarioId))) {
             throw new RecursoNaoEncontradoException("Solicitação", id);
         }
         return SolicitacaoDTO.detalhe(solicitacao);
@@ -125,9 +123,8 @@ public class SolicitacaoService {
      * (dois monitores assumindo juntos) aparece aqui mesmo e vira 409.
      */
     private SolicitacaoDTO executar(Long id, Long usuarioId, TipoEvento tipo, BiConsumer<Solicitacao, Usuario> acao) {
-        Solicitacao solicitacao = solicitacoes.findDetalhadaById(id)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Solicitação", id));
-        Usuario usuario = buscarUsuario(usuarioId);
+        Solicitacao solicitacao = solicitacoes.buscarDetalhada(id);
+        Usuario usuario = usuarios.buscar(usuarioId);
 
         acao.accept(solicitacao, usuario);
         solicitacoes.saveAndFlush(solicitacao);
@@ -139,10 +136,6 @@ public class SolicitacaoService {
         SolicitacaoDTO dto = SolicitacaoDTO.detalhe(solicitacao);
         eventos.publishEvent(new SolicitacaoAlteradaEvent(tipo, dto, UsuarioResumoDTO.de(autor)));
         return dto;
-    }
-
-    private Usuario buscarUsuario(Long id) {
-        return usuarios.findById(id).orElseThrow(() -> new RecursoNaoEncontradoException("Usuário", id));
     }
 
     private Instant agora() {

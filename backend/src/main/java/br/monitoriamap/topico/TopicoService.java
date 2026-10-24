@@ -1,6 +1,5 @@
 package br.monitoriamap.topico;
 
-import br.monitoriamap.common.RecursoNaoEncontradoException;
 import br.monitoriamap.common.RegraNegocioException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,24 +23,26 @@ public class TopicoService {
     }
 
     public TopicoDTO criar(String nome) {
-        if (topicos.existsByNomeIgnoreCase(nome.trim())) {
-            throw new RegraNegocioException("Já existe um tópico chamado \"" + nome.trim() + "\".");
-        }
+        exigirNomeLivre(nome.trim(), topicos.existsByNomeIgnoreCase(nome.trim()));
         return TopicoDTO.de(topicos.save(new Topico(nome)));
     }
 
     public TopicoDTO atualizar(Long id, String nome, Boolean ativo) {
-        Topico topico = topicos.findById(id).orElseThrow(() -> new RecursoNaoEncontradoException("Tópico", id));
+        Topico topico = topicos.buscar(id);
         if (nome != null && !nome.isBlank()) {
-            if (topicos.existsByNomeIgnoreCaseAndIdNot(nome.trim(), id)) {
-                throw new RegraNegocioException("Já existe um tópico chamado \"" + nome.trim() + "\".");
-            }
+            exigirNomeLivre(nome.trim(), topicos.existsByNomeIgnoreCaseAndIdNot(nome.trim(), id));
             topico.renomear(nome);
         }
         if (ativo != null) {
             topico.definirAtivo(ativo);
         }
         return TopicoDTO.de(topico);
+    }
+
+    private static void exigirNomeLivre(String nome, boolean jaExiste) {
+        if (jaExiste) {
+            throw new RegraNegocioException("Já existe um tópico chamado \"" + nome + "\".");
+        }
     }
 
     public record TopicoDTO(Long id, String nome, boolean ativo) {

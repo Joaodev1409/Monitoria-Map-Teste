@@ -219,6 +219,17 @@ class SolicitacaoTest {
         }
     }
 
+    @Test
+    @DisplayName("o pedido só aparece para quem abriu e para quem atende")
+    void quemVeOPedido() {
+        Usuario outroAluno = usuario(5, "Outro Aluno", Papel.ALUNO);
+
+        assertThat(solicitacao.podeSerVistaPor(aluno)).isTrue();
+        assertThat(solicitacao.podeSerVistaPor(ana)).isTrue();
+        assertThat(solicitacao.podeSerVistaPor(admin)).isTrue();
+        assertThat(solicitacao.podeSerVistaPor(outroAluno)).isFalse();
+    }
+
     @Nested
     @DisplayName("conversa")
     class Conversa {

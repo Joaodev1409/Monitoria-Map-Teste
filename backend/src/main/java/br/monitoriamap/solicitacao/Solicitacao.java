@@ -204,6 +204,14 @@ public class Solicitacao {
     }
 
     /**
+     * Quem enxerga o pedido: o aluno que abriu e qualquer monitor ou admin (para poder atender).
+     * Para qualquer outra pessoa o pedido "não existe" (a API responde 404, não 403).
+     */
+    public boolean podeSerVistaPor(Usuario usuario) {
+        return usuario.podeAtender() || foiAbertaPor(usuario);
+    }
+
+    /**
      * Quem lê a conversa: o aluno, o monitor que está (ou esteve, se já concluiu) com o pedido
      * e o admin. Vale em qualquer estado: depois de concluir, o registro continua disponível.
      * Se o pedido voltar para a fila e outro monitor assumir, ele herda a conversa.

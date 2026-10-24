@@ -1,9 +1,11 @@
 package br.monitoriamap.solicitacao;
 
+import br.monitoriamap.common.RecursoNaoEncontradoException;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -30,5 +32,15 @@ public interface SolicitacaoRepository extends JpaRepository<Solicitacao, Long> 
 
     long countByStatus(StatusSolicitacao status);
 
-    long countByAlunoIdAndStatusIn(Long alunoId, java.util.Collection<StatusSolicitacao> status);
+    long countByAlunoIdAndStatusIn(Long alunoId, Collection<StatusSolicitacao> status);
+
+    /** A solicitação com este id, ou 404. */
+    default Solicitacao buscar(Long id) {
+        return findById(id).orElseThrow(() -> new RecursoNaoEncontradoException("Solicitação", id));
+    }
+
+    /** A solicitação com aluno, monitor, tópico e histórico já carregados, ou 404. */
+    default Solicitacao buscarDetalhada(Long id) {
+        return findDetalhadaById(id).orElseThrow(() -> new RecursoNaoEncontradoException("Solicitação", id));
+    }
 }
