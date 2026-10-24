@@ -9,6 +9,7 @@ import br.monitoriamap.topico.Topico;
 import br.monitoriamap.usuario.Papel;
 import br.monitoriamap.usuario.Usuario;
 import br.monitoriamap.usuario.UsuarioRepository;
+import br.monitoriamap.usuario.UsuarioResumoDTO;
 import jakarta.mail.Address;
 import jakarta.mail.Message.RecipientType;
 import jakarta.mail.Session;
@@ -70,8 +71,8 @@ class EmailNotificadorTest {
         return new EmailNotificador(mailSender, templates, usuarios, propriedades);
     }
 
-    private static SolicitacaoAlteradaEvent evento(TipoEvento tipo, Solicitacao s) {
-        return new SolicitacaoAlteradaEvent(tipo, SolicitacaoDTO.detalhe(s));
+    private static SolicitacaoAlteradaEvent evento(TipoEvento tipo, Solicitacao s, Usuario autor) {
+        return new SolicitacaoAlteradaEvent(tipo, SolicitacaoDTO.detalhe(s), UsuarioResumoDTO.de(autor));
     }
 
     private MimeMessage enviado() throws Exception {
@@ -90,7 +91,7 @@ class EmailNotificadorTest {
 
     @Test
     void pedidoNovoVaiParaOsMonitoresEmCopiaOculta() throws Exception {
-        notificador(true).notificar(evento(TipoEvento.CRIADA, solicitacao));
+        notificador(true).notificar(evento(TipoEvento.CRIADA, solicitacao, aluno));
 
         MimeMessage email = enviado();
         assertThat(email.getSubject()).isEqualTo("[Monitoria MAP] Nova solicitação: Dúvida no Observer");
@@ -103,7 +104,7 @@ class EmailNotificadorTest {
     void quemAbriuOPedidoNaoRecebeOAvisoDosMonitores() throws Exception {
         when(usuarios.findByPapelInAndAtivoTrue(any())).thenReturn(List.of(ana, aluno));
 
-        notificador(true).notificar(evento(TipoEvento.CRIADA, solicitacao));
+        notificador(true).notificar(evento(TipoEvento.CRIADA, solicitacao, aluno));
 
         assertThat(enderecos(enviado().getAllRecipients())).doesNotContain(aluno.getEmail());
     }
@@ -112,7 +113,7 @@ class EmailNotificadorTest {
     void pedidoAssumidoAvisaOAluno() throws Exception {
         solicitacao.assumir(ana, depois(1));
 
-        notificador(true).notificar(evento(TipoEvento.ASSUMIDA, solicitacao));
+        notificador(true).notificar(evento(TipoEvento.ASSUMIDA, solicitacao, ana));
 
         MimeMessage email = enviado();
         assertThat(enderecos(email.getRecipients(RecipientType.TO))).containsExactly(aluno.getEmail());
@@ -124,7 +125,7 @@ class EmailNotificadorTest {
         solicitacao.assumir(ana, depois(1));
         solicitacao.definirLink(ana, "https://meet.google.com/novo", depois(2));
 
-        notificador(true).notificar(evento(TipoEvento.LINK_DEFINIDO, solicitacao));
+        notificador(true).notificar(evento(TipoEvento.LINK_DEFINIDO, solicitacao, ana));
 
         assertThat(enderecos(enviado().getRecipients(RecipientType.TO))).containsExactly(aluno.getEmail());
     }
@@ -133,7 +134,7 @@ class EmailNotificadorTest {
     void linkPostoPeloProprioAlunoNaoGeraEmail() {
         solicitacao.definirLink(aluno, "https://meet.google.com/meu", depois(1));
 
-        notificador(true).notificar(evento(TipoEvento.LINK_DEFINIDO, solicitacao));
+        notificador(true).notificar(evento(TipoEvento.LINK_DEFINIDO, solicitacao, aluno));
 
         verify(mailSender, never()).send(any(MimeMessage.class));
     }
@@ -142,14 +143,14 @@ class EmailNotificadorTest {
     void cancelamentoNaoGeraEmail() {
         solicitacao.cancelar(aluno, depois(1));
 
-        notificador(true).notificar(evento(TipoEvento.CANCELADA, solicitacao));
+        notificador(true).notificar(evento(TipoEvento.CANCELADA, solicitacao, aluno));
 
         verify(mailSender, never()).send(any(MimeMessage.class));
     }
 
     @Test
     void comOEmailDesligadoNadaEEnviado() {
-        notificador(false).notificar(evento(TipoEvento.CRIADA, solicitacao));
+        notificador(false).notificar(evento(TipoEvento.CRIADA, solicitacao, aluno));
 
         verify(mailSender, never()).send(any(MimeMessage.class));
     }

@@ -14,6 +14,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.Predicate;
 
 /**
  * Empurra as mudanças para quem está com o sistema aberto, via Server-Sent Events (SSE).
@@ -53,26 +54,24 @@ public class PainelTempoRealNotificador implements Notificador {
         Set<Long> interessados = evento.solicitacao().monitor() == null
                 ? Set.of(alunoId)
                 : Set.of(alunoId, evento.solicitacao().monitor().id());
-
-        for (Conexao conexao : conexoes) {
-            if (conexao.podeAtender() || interessados.contains(conexao.usuarioId())) {
-                enviar(conexao, SseEmitter.event()
-                        .name("solicitacao")
-                        .id(String.valueOf(System.currentTimeMillis()))
-                        .data(evento));
-            }
-        }
+        transmitir("solicitacao", evento,
+                conexao -> conexao.podeAtender() || interessados.contains(conexao.usuarioId()));
     }
 
     @Override
     public void notificarMensagem(MensagemEnviadaEvent evento) {
         Set<Long> participantes = Set.of(evento.alunoId(), evento.monitorId());
+        transmitir("mensagem", evento.mensagem(), conexao -> participantes.contains(conexao.usuarioId()));
+    }
+
+    /** Envia um evento com este nome e estes dados para cada conexão que passar no filtro. */
+    private void transmitir(String nome, Object dados, Predicate<Conexao> destinatario) {
         for (Conexao conexao : conexoes) {
-            if (participantes.contains(conexao.usuarioId())) {
+            if (destinatario.test(conexao)) {
                 enviar(conexao, SseEmitter.event()
-                        .name("mensagem")
+                        .name(nome)
                         .id(String.valueOf(System.currentTimeMillis()))
-                        .data(evento.mensagem()));
+                        .data(dados));
             }
         }
     }
@@ -83,10 +82,6 @@ public class PainelTempoRealNotificador implements Notificador {
         for (Conexao conexao : conexoes) {
             enviar(conexao, SseEmitter.event().comment("ping"));
         }
-    }
-
-    public int totalDeConexoes() {
-        return conexoes.size();
     }
 
     private void enviar(Conexao conexao, SseEmitter.SseEventBuilder evento) {

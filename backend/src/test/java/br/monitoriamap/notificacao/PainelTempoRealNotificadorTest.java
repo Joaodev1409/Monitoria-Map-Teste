@@ -62,7 +62,8 @@ class PainelTempoRealNotificadorTest {
         EmissorDeTeste daAna = conectar(ana);
         Solicitacao s = solicitacao(aluno, topico(1, "Observer"), INICIO);
 
-        painel.notificar(new SolicitacaoAlteradaEvent(TipoEvento.CRIADA, SolicitacaoDTO.detalhe(s)));
+        painel.notificar(new SolicitacaoAlteradaEvent(TipoEvento.CRIADA, SolicitacaoDTO.detalhe(s),
+                UsuarioResumoDTO.de(aluno)));
 
         assertThat(doAluno.recebidos).containsExactly("solicitacao");
         assertThat(daAna.recebidos).containsExactly("solicitacao");

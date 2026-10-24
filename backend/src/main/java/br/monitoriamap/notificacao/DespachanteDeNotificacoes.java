@@ -10,6 +10,7 @@ import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
 import java.util.List;
+import java.util.function.Consumer;
 
 /**
  * Padrão Observer: o {@code SolicitacaoService} publica um evento sem saber quem está ouvindo.
@@ -36,25 +37,23 @@ public class DespachanteDeNotificacoes {
     @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
     public void aoAlterarSolicitacao(SolicitacaoAlteradaEvent evento) {
-        for (Notificador notificador : notificadores) {
-            try {
-                notificador.notificar(evento);
-            } catch (RuntimeException e) {
-                log.warn("Falha no notificador {} para a solicitação {}: {}",
-                        notificador.nome(), evento.solicitacao().id(), e.getMessage(), e);
-            }
-        }
+        avisarTodos("a solicitação " + evento.solicitacao().id(), notificador -> notificador.notificar(evento));
     }
 
     @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
     public void aoEnviarMensagem(MensagemEnviadaEvent evento) {
+        avisarTodos("a mensagem da solicitação " + evento.mensagem().solicitacaoId(),
+                notificador -> notificador.notificarMensagem(evento));
+    }
+
+    /** Chama cada canal isoladamente: se um falhar, os outros ainda são avisados. */
+    private void avisarTodos(String sobre, Consumer<Notificador> aviso) {
         for (Notificador notificador : notificadores) {
             try {
-                notificador.notificarMensagem(evento);
+                aviso.accept(notificador);
             } catch (RuntimeException e) {
-                log.warn("Falha no notificador {} para a mensagem da solicitação {}: {}",
-                        notificador.nome(), evento.mensagem().solicitacaoId(), e.getMessage(), e);
+                log.warn("Falha no notificador {} para {}: {}", notificador.nome(), sobre, e.getMessage(), e);
             }
         }
     }

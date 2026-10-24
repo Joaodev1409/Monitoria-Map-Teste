@@ -49,30 +49,29 @@ public class EmailNotificador implements Notificador {
     public void notificar(SolicitacaoAlteradaEvent evento) {
         SolicitacaoDTO s = evento.solicitacao();
         switch (evento.tipo()) {
-            case CRIADA -> enviarParaMonitores(s,
+            case CRIADA -> enviarParaMonitores(s, new Aviso(
                     "Nova solicitação: " + s.titulo(),
                     s.aluno().nome() + " pediu ajuda em " + s.topico().nome() + ".",
-                    "Ver fila", "/monitor/fila");
-            case DEVOLVIDA -> enviarParaMonitores(s,
+                    "Ver fila", "/monitor/fila"));
+            case DEVOLVIDA -> enviarParaMonitores(s, new Aviso(
                     "De volta à fila: " + s.titulo(),
                     "A solicitação de " + s.aluno().nome() + " voltou para a fila e precisa de um monitor.",
-                    "Ver fila", "/monitor/fila");
-            case ASSUMIDA -> enviar(emailDoAluno(s), s,
+                    "Ver fila", "/monitor/fila"));
+            case ASSUMIDA -> enviar(emailDoAluno(s), s, new Aviso(
                     s.monitor().nome() + " vai te ajudar",
                     s.monitor().nome() + " assumiu a sua solicitação e vai entrar em contato.",
-                    "Acompanhar", "/solicitacoes/" + s.id());
-            case CONCLUIDA -> enviar(emailDoAluno(s), s,
+                    "Acompanhar", "/solicitacoes/" + s.id()));
+            case CONCLUIDA -> enviar(emailDoAluno(s), s, new Aviso(
                     "Atendimento concluído: " + s.titulo(),
                     "O atendimento foi marcado como concluído. Se a dúvida continuar, abra uma nova solicitação.",
-                    "Ver detalhes", "/solicitacoes/" + s.id());
+                    "Ver detalhes", "/solicitacoes/" + s.id()));
             case LINK_DEFINIDO -> {
-                // Só avisa por e-mail quando foi o monitor que mandou o link (o aluno já sabe o que colocou).
-                var ultimo = s.historico().isEmpty() ? null : s.historico().get(s.historico().size() - 1);
-                if (ultimo != null && !ultimo.autor().id().equals(s.aluno().id())) {
-                    enviar(emailDoAluno(s), s,
+                // Só avisa quando foi o monitor que mandou o link (o aluno já sabe o que colocou).
+                if (!evento.autor().id().equals(s.aluno().id())) {
+                    enviar(emailDoAluno(s), s, new Aviso(
                             "Link da reunião: " + s.titulo(),
-                            ultimo.autor().nome() + " enviou o link da chamada. Abra o pedido para entrar.",
-                            "Ver o link", "/solicitacoes/" + s.id());
+                            evento.autor().nome() + " enviou o link da chamada. Abra o pedido para entrar.",
+                            "Ver o link", "/solicitacoes/" + s.id()));
                 }
             }
             case CANCELADA -> {
@@ -81,35 +80,38 @@ public class EmailNotificador implements Notificador {
         }
     }
 
+    /** O que vai no e-mail: assunto, texto e o botão que leva para a tela certa do site. */
+    private record Aviso(String assunto, String mensagem, String botao, String caminho) {
+    }
+
     /** O e-mail não viaja no evento (que também vai para o navegador): buscamos no banco. */
     private List<String> emailDoAluno(SolicitacaoDTO s) {
         return usuarios.findById(s.aluno().id()).map(Usuario::getEmail).map(List::of).orElse(List.of());
     }
 
-    private void enviarParaMonitores(SolicitacaoDTO s, String assunto, String mensagem, String botao, String caminho) {
+    private void enviarParaMonitores(SolicitacaoDTO s, Aviso aviso) {
         List<String> emails = usuarios.findByPapelInAndAtivoTrue(List.of(Papel.MONITOR, Papel.ADMIN)).stream()
                 .filter(u -> !u.getId().equals(s.aluno().id()))
                 .map(Usuario::getEmail)
                 .toList();
-        enviar(emails, s, assunto, mensagem, botao, caminho);
+        enviar(emails, s, aviso);
     }
 
-    private void enviar(List<String> destinatarios, SolicitacaoDTO s, String assunto, String mensagem,
-                        String botao, String caminho) {
+    private void enviar(List<String> destinatarios, SolicitacaoDTO s, Aviso aviso) {
         if (destinatarios.isEmpty()) {
             return;
         }
         if (!propriedades.email().habilitado()) {
-            log.info("[e-mail desativado] Para {}: {}", destinatarios, assunto);
+            log.info("[e-mail desativado] Para {}: {}", destinatarios, aviso.assunto());
             return;
         }
 
         Context contexto = new Context();
-        contexto.setVariable("titulo", assunto);
-        contexto.setVariable("mensagem", mensagem);
+        contexto.setVariable("titulo", aviso.assunto());
+        contexto.setVariable("mensagem", aviso.mensagem());
         contexto.setVariable("solicitacao", s);
-        contexto.setVariable("botao", botao);
-        contexto.setVariable("link", propriedades.urlFrontend() + caminho);
+        contexto.setVariable("botao", aviso.botao());
+        contexto.setVariable("link", propriedades.urlFrontend() + aviso.caminho());
         String html = templates.process("email/notificacao", contexto);
 
         try {
@@ -123,7 +125,7 @@ public class EmailNotificador implements Notificador {
                 ajudante.setTo(propriedades.email().remetente());
                 ajudante.setBcc(destinatarios.toArray(String[]::new));
             }
-            ajudante.setSubject("[Monitoria MAP] " + assunto);
+            ajudante.setSubject("[Monitoria MAP] " + aviso.assunto());
             ajudante.setText(html, true);
             mailSender.send(email);
         } catch (MessagingException e) {

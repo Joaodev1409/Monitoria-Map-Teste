@@ -9,6 +9,7 @@ import br.monitoriamap.topico.Topico;
 import br.monitoriamap.topico.TopicoRepository;
 import br.monitoriamap.usuario.Usuario;
 import br.monitoriamap.usuario.UsuarioRepository;
+import br.monitoriamap.usuario.UsuarioResumoDTO;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -62,7 +63,7 @@ public class SolicitacaoService {
                 pedido.modalidade(), pedido.linkReuniao(), agora());
         solicitacoes.save(solicitacao);
 
-        return publicar(TipoEvento.CRIADA, solicitacao);
+        return publicar(TipoEvento.CRIADA, solicitacao, aluno);
     }
 
     @Transactional(readOnly = true)
@@ -131,12 +132,12 @@ public class SolicitacaoService {
         acao.accept(solicitacao, usuario);
         solicitacoes.saveAndFlush(solicitacao);
 
-        return publicar(tipo, solicitacao);
+        return publicar(tipo, solicitacao, usuario);
     }
 
-    private SolicitacaoDTO publicar(TipoEvento tipo, Solicitacao solicitacao) {
+    private SolicitacaoDTO publicar(TipoEvento tipo, Solicitacao solicitacao, Usuario autor) {
         SolicitacaoDTO dto = SolicitacaoDTO.detalhe(solicitacao);
-        eventos.publishEvent(new SolicitacaoAlteradaEvent(tipo, dto));
+        eventos.publishEvent(new SolicitacaoAlteradaEvent(tipo, dto, UsuarioResumoDTO.de(autor)));
         return dto;
     }
 
