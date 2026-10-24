@@ -40,10 +40,12 @@ public class RelatorioService {
     private static final long LIMITE_DIAS = 400;
 
     private final SolicitacaoRepository solicitacoes;
+    private final ExportadorCsv exportador;
     private final ZoneId fuso;
 
-    public RelatorioService(SolicitacaoRepository solicitacoes, AppProperties propriedades) {
+    public RelatorioService(SolicitacaoRepository solicitacoes, ExportadorCsv exportador, AppProperties propriedades) {
         this.solicitacoes = solicitacoes;
+        this.exportador = exportador;
         this.fuso = propriedades.fusoHorario();
     }
 
@@ -51,7 +53,19 @@ public class RelatorioService {
         return resumir(de, ate, buscar(de, ate));
     }
 
-    public List<Solicitacao> buscar(LocalDate de, LocalDate ate) {
+    /**
+     * A planilha do período, já pronta. Fica aqui (e não no controller) porque gerar o CSV lê
+     * dados ligados à solicitação (aluno, monitor, tópico): precisa estar dentro da transação.
+     */
+    public ArquivoCsv exportarCsv(LocalDate de, LocalDate ate) {
+        String nome = "monitoria-map_" + de + "_a_" + ate + ".csv";
+        return new ArquivoCsv(nome, exportador.exportar(buscar(de, ate), fuso));
+    }
+
+    public record ArquivoCsv(String nome, String conteudo) {
+    }
+
+    private List<Solicitacao> buscar(LocalDate de, LocalDate ate) {
         if (ate.isBefore(de)) {
             throw new RegraNegocioException("A data final deve ser igual ou posterior à inicial.");
         }

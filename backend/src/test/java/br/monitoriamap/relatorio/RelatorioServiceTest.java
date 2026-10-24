@@ -25,7 +25,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class RelatorioServiceTest {
 
-    private final RelatorioService servico = new RelatorioService(Mockito.mock(SolicitacaoRepository.class),
+    private final RelatorioService servico = new RelatorioService(Mockito.mock(SolicitacaoRepository.class), new ExportadorCsv(),
             new AppProperties(null, null, null, null, null, "http://localhost", ZoneId.of("America/Fortaleza")));
 
     private final Usuario aluno = usuario(1, "Maria", Papel.ALUNO);
