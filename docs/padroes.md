@@ -99,9 +99,14 @@ classDiagram
   monitor responsável. Por isso essas regras também moram nos estados, em vez de virar `if`s no serviço:
 
 ```java
-// EstadoSolicitacao: por padrão, não há conversa (ABERTA, CONCLUIDA, CANCELADA)
+// EstadoSolicitacao: por padrão a conversa já terminou (CONCLUIDA e CANCELADA herdam isto)
 default MensagemSolicitacao enviarMensagem(Solicitacao s, Usuario autor, String texto, Instant agora) {
-    throw new TransicaoInvalidaException(...);
+    throw new TransicaoInvalidaException("A conversa foi encerrada com o atendimento.");
+}
+
+// EstadoAberta: ainda não há com quem conversar
+public MensagemSolicitacao enviarMensagem(...) {
+    throw new TransicaoInvalidaException("A conversa começa quando um monitor assumir o pedido.");
 }
 
 // EstadoEmAtendimento: só os dois envolvidos escrevem
@@ -110,6 +115,11 @@ public MensagemSolicitacao enviarMensagem(Solicitacao s, Usuario autor, String t
     return s.criarMensagem(autor, texto, agora);
 }
 ```
+
+- **Armadilha que já aconteceu aqui.** A primeira versão do `enviarMensagem` padrão escolhia a mensagem
+  com um `switch (status())` dentro da própria interface. Funciona, mas é o condicional que o State
+  existe para eliminar: se surgir um estado novo, alguém precisa lembrar de mexer no `switch`. A
+  correção foi deixar cada estado responder por si (*Substituir Condicional por Polimorfismo*).
 
 📁 `backend/src/main/java/br/monitoriamap/solicitacao/`
 `Solicitacao.java`, `StatusSolicitacao.java`, `EstadoSolicitacao.java`, `Estado*.java`
@@ -129,7 +139,7 @@ O serviço apenas **publica um evento**. Quem tiver interesse **observa**:
 
 ```java
 // SolicitacaoService: não sabe quem está ouvindo
-eventos.publishEvent(new SolicitacaoAlteradaEvent(TipoEvento.ASSUMIDA, dto));
+eventos.publishEvent(new SolicitacaoAlteradaEvent(TipoEvento.ASSUMIDA, dto, autor));
 ```
 
 ```java
@@ -230,6 +240,11 @@ publicar o evento e converter para DTO. O controller fica com poucas linhas por 
 O método `executar(...)` concentra o fluxo comum a toda mudança de estado e recebe a ação específica
 como um `BiConsumer` (uma pitada de **Template Method** com lambdas).
 
+O mesmo vale para o relatório: o controller do CSV só pede `relatorios.exportarCsv(de, ate)` e monta os
+cabeçalhos do download. Buscar as solicitações, ler aluno, monitor e tópico dentro da transação e gerar a
+planilha fica atrás da fachada. Numa versão anterior, o próprio controller abria a transação e recebia
+as entidades JPA, e era isso que a fachada deveria esconder.
+
 📁 `solicitacao/SolicitacaoService.java`, `solicitacao/SolicitacaoController.java`
 
 ---
@@ -239,6 +254,9 @@ como um `BiConsumer` (uma pitada de **Template Method** com lambdas).
 - **Repository** (`SolicitacaoRepository`, `UsuarioRepository`...): o Spring Data gera a implementação a
   partir do nome do método (`findByStatusOrderByCriadaEmAsc`). Os `@EntityGraph` evitam o problema
   **N+1** ao carregar aluno, monitor e tópico junto com a lista.
+- O "busque pelo id ou responda 404" é um método `default` do próprio repositório
+  (`usuarios.buscar(id)`, `solicitacoes.buscarDetalhada(id)`), em vez de um
+  `findById(...).orElseThrow(...)` copiado em cada serviço.
 - **DTO** (`SolicitacaoDTO`, records): a API nunca devolve entidades JPA. Isso evita expor campos
   internos, laços infinitos na serialização e `LazyInitializationException`.
 
