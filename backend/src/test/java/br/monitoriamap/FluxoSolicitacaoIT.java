@@ -45,6 +45,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -448,6 +449,28 @@ class FluxoSolicitacaoIT {
                 .andExpect(jsonPath("$.erros.texto").value("A mensagem pode ter até 4000 caracteres."));
         mvc.perform(post("/api/solicitacoes/{id}/mensagens", id).cookie(aluno)
                         .contentType(MediaType.APPLICATION_JSON).content("{\"texto\":\"oi\"}"))
+                .andExpect(status().isForbidden());
+    }
+
+    // ---- Relatório ---------------------------------------------------------------------------
+
+    @Test
+    void adminExportaOsPedidosDoPeriodoEmCsv() throws Exception {
+        String sufixo = UUID.randomUUID().toString().substring(0, 8);
+        Cookie admin = login("admin-csv-" + sufixo + "@exemplo.com", "Prof Admin", "ADMIN");
+        abrirSolicitacao(aluno);
+        java.time.LocalDate hoje = java.time.LocalDate.now(java.time.ZoneId.of("America/Fortaleza"));
+
+        mvc.perform(get("/api/relatorios/export.csv").cookie(admin)
+                        .param("de", hoje.minusDays(1).toString()).param("ate", hoje.plusDays(1).toString()))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith("text/csv"))
+                .andExpect(header().string("Content-Disposition", containsString("monitoria-map_")))
+                .andExpect(content().string(containsString("id;criada_em;status")))
+                .andExpect(content().string(containsString("Maria Aluna")));
+
+        mvc.perform(get("/api/relatorios/export.csv").cookie(aluno)
+                        .param("de", hoje.toString()).param("ate", hoje.toString()))
                 .andExpect(status().isForbidden());
     }
 }

@@ -31,7 +31,11 @@ public class PainelTempoRealNotificador implements Notificador {
     private final List<Conexao> conexoes = new CopyOnWriteArrayList<>();
 
     public SseEmitter conectar(UsuarioAutenticado usuario) {
-        SseEmitter emitter = new SseEmitter(TEMPO_MAXIMO_CONEXAO);
+        return conectar(usuario, new SseEmitter(TEMPO_MAXIMO_CONEXAO));
+    }
+
+    /** Recebe o emissor pronto: nos testes, um emissor que só anota o que recebeu. */
+    SseEmitter conectar(UsuarioAutenticado usuario, SseEmitter emitter) {
         Conexao conexao = new Conexao(usuario.id(), usuario.podeAtender(), emitter);
         conexoes.add(conexao);
 
