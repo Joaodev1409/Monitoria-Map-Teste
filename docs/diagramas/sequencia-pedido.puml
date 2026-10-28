@@ -1,0 +1,110 @@
+@startuml sequencia-pedido
+' Diagrama de sequência: o aluno abre um pedido e um monitor assume.
+' Para regenerar o SVG, veja a seção "Como funciona" do README.
+!theme plain
+
+skinparam shadowing false
+skinparam defaultFontSize 13
+skinparam ArrowColor #1E1B18
+skinparam ParticipantBackgroundColor #FAF7F2
+skinparam ParticipantBorderColor #D3C7B4
+skinparam ActorBackgroundColor #FAF7F2
+skinparam ActorBorderColor #665D55
+skinparam DatabaseBackgroundColor #FAF7F2
+skinparam DatabaseBorderColor #D3C7B4
+skinparam SequenceLifeLineBorderColor #D3C7B4
+skinparam SequenceBoxBorderColor #E6DDCF
+skinparam SequenceGroupBorderColor #665D55
+skinparam SequenceDividerBackgroundColor #EBE4D8
+skinparam SequenceDividerBorderColor #D3C7B4
+skinparam NoteBackgroundColor #F6E6C6
+skinparam NoteBorderColor #D3C7B4
+
+title Monitoria MAP: o aluno pede ajuda e um monitor assume
+
+autonumber
+
+actor "Aluno\n(navegador)" as FA
+box "API: solicitação" #F3EEE6
+  participant "Solicitacao\nController" as C
+  participant "Solicitacao\nService\n(Facade)" as S
+  participant "Solicitacao\n(State)" as D
+end box
+database "PostgreSQL" as DB
+box "API: notificação" #F3EEE6
+  participant "Despachante\n(Observer)" as N
+  participant "Email\nNotificador" as E
+  participant "PainelTempoReal\nNotificador (SSE)" as SSE
+end box
+actor "Monitor\n(navegador)" as FM
+
+== Antes de tudo: o monitor está com a fila aberta ==
+
+FM -> SSE : GET /api/eventos/stream
+SSE --> FM : conexão SSE aberta\n(ping a cada 25 s)
+
+== 1. O aluno pede ajuda ==
+
+FA -> C : POST /api/solicitacoes\ntópico, descrição, modalidade
+note right of FA
+  Antes do controller, os filtros
+  conferem a sessão (cookie), o
+  CSRF e o limite de pedidos por hora.
+end note
+C -> S : abrir(alunoId, pedido)
+S -> DB : pedidos ativos do aluno?\ntópico existe e está ativo?
+
+alt limite de pedidos ativos atingido ou tópico inválido
+  C --> FA : 422 + mensagem (ProblemDetail)
+else tudo certo
+  S -> D : Solicitacao.abrir(...)
+  D --> S : ABERTA + evento CRIADA
+  S -> DB : INSERT solicitacao
+  C --> FA : 201 Created\n"Seu pedido está na fila"
+
+  ... depois do commit, em outra thread (@Async) ...
+
+  S ->> N : SolicitacaoAlteradaEvent(CRIADA)
+  par cada canal isolado: um que falhe não para o outro
+    N -> E : notificar(evento)
+    E -> E : e-mail aos monitores\n(cópia oculta)
+  else
+    N -> SSE : notificar(evento)
+    SSE ->> FM : evento "solicitacao"\n(CRIADA)
+    FM -> FM : bip + notificação\n"Pedido novo na fila"
+  end
+end
+
+== 2. Um monitor assume ==
+
+FM -> C : POST /api/solicitacoes/{id}/assumir
+note right of C : só com papel MONITOR\n(@PreAuthorize)
+C -> S : assumir(id, monitorId)
+S -> DB : buscarDetalhada(id)
+S -> D : assumir(monitor, agora)
+
+alt já está EM_ATENDIMENTO
+  D --> S : TransicaoInvalidaException
+  C --> FM : 409 "Esta solicitação já foi\nassumida por Ana."
+else ainda ABERTA
+  D -> D : EstadoAberta.assumir():\nregistra o monitor e a hora
+  S -> DB : saveAndFlush\nUPDATE ... WHERE versao = ?
+
+  alt outro monitor gravou primeiro (a versão mudou)
+    DB --> S : 0 linhas alteradas\n(ObjectOptimisticLockingFailureException)
+    C --> FM : 409 "Outra pessoa alterou esta\nsolicitação agora mesmo."
+  else foi o primeiro
+    C --> FM : 200 OK (EM_ATENDIMENTO)
+
+    ... depois do commit (@Async) ...
+
+    S ->> N : SolicitacaoAlteradaEvent(ASSUMIDA)
+    N -> E : notificar(evento)
+    E -> E : e-mail ao aluno\n"Ana vai te ajudar"
+    N -> SSE : notificar(evento)
+    SSE ->> FA : evento "solicitacao" (ASSUMIDA)
+    FA -> FA : "Ana assumiu\no seu pedido"
+  end
+end
+
+@enduml
