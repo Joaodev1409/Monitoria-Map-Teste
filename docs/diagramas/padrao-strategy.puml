@@ -1,0 +1,55 @@
+@startuml padrao-strategy
+' Padrão Strategy: um canal de notificação por classe (docs/padroes.md, seção 3).
+!include estilo-classes.iuml
+
+title Strategy: um canal de notificação por classe
+
+class DespachanteDeNotificacoes <<Context>> {
+  -notificadores : List<Notificador>
+  -avisarTodos(sobre, aviso)
+}
+
+interface Notificador <<Strategy>> {
+  +notificar(evento : SolicitacaoAlteradaEvent)
+  +notificarMensagem(evento : MensagemEnviadaEvent)
+  +nome() : String
+}
+
+class EmailNotificador <<ConcreteStrategy>> {
+  -mailSender : JavaMailSender
+  -templates : TemplateEngine
+  +notificar(evento)
+  -enviarParaMonitores(s, aviso)
+  -enviar(destinatarios, s, aviso)
+}
+
+class PainelTempoRealNotificador <<ConcreteStrategy>> {
+  -conexoes : List<Conexao>
+  +conectar(usuario) : SseEmitter
+  +notificar(evento)
+  +notificarMensagem(evento)
+  ~manterConexoesVivas()
+}
+
+class WhatsAppNotificador <<futuro>> {
+  +notificar(evento)
+}
+
+DespachanteDeNotificacoes o--> "*" Notificador : recebe todas\npor injeção
+Notificador <|.. EmailNotificador
+Notificador <|.. PainelTempoRealNotificador
+Notificador <|.. WhatsAppNotificador
+
+note right of Notificador
+  notificarMensagem() e nome() são default:
+  o e-mail não entrega mensagens da conversa
+  e não precisou mudar quando ela surgiu.
+end note
+
+note bottom of WhatsAppNotificador
+  Aberto/Fechado: um canal novo é
+  só uma classe @Component nova.
+  Nenhuma linha existente muda.
+end note
+
+@enduml

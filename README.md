@@ -27,6 +27,38 @@ Observer, Strategy, Facade...).
 - Conversa dentro do pedido entre o aluno e o monitor que assumiu, ao vivo, com blocos de código. Depois
   de concluído, fica só para leitura; o admin acompanha, mas não escreve.
 
+## Como funciona
+
+### Atividade: do pedido ao atendimento concluído
+
+Quem faz o quê, do login do aluno ao fim do atendimento. As cores seguem os status da tela: areia para
+ABERTA, azul para EM ATENDIMENTO, sálvia para CONCLUÍDA e cinza para CANCELADA.
+
+![Diagrama de atividade: do pedido ao atendimento concluído](docs/diagramas/atividade-atendimento.svg)
+
+### Sequência: o aluno pede ajuda e um monitor assume
+
+O caminho de uma requisição pelas camadas da API e como os avisos chegam aos dois lados. Repare que a
+notificação só sai depois do commit e que, se dois monitores clicam juntos em "Assumir", um recebe 200 e o
+outro 409.
+
+![Diagrama de sequência: o aluno pede ajuda e um monitor assume](docs/diagramas/sequencia-pedido.svg)
+
+### Classes: onde estão os padrões de projeto
+
+Cada pacote do diagrama é um padrão: Facade nos serviços, State na solicitação, Observer nos eventos e
+Strategy nos canais de notificação. A explicação de cada um, com um diagrama só dele, está em
+[docs/padroes.md](docs/padroes.md).
+
+![Diagrama de classes: padrões de projeto no código](docs/diagramas/classes-padroes.svg)
+
+As fontes estão em [docs/diagramas/](docs/diagramas/), em PlantUML. Depois de editar um `.puml`, gere os SVGs
+de novo (precisa de Java e do [plantuml.jar](https://plantuml.com/download)):
+
+```bash
+java -jar plantuml.jar -charset UTF-8 -tsvg docs/diagramas/*.puml
+```
+
 ## Tecnologias
 
 | Camada | Stack |

@@ -1,0 +1,69 @@
+@startuml padrao-facade
+' Padrão Facade: a camada de serviço (docs/padroes.md, seção 4).
+!include estilo-classes.iuml
+
+title Facade: o controller pede, o serviço coordena
+
+class SolicitacaoController {
+  +abrir(usuario, pedido)
+  +assumir(usuario, id)
+  +concluir(usuario, id, pedido)
+  +enviarMensagem(usuario, id, pedido)
+}
+class RelatorioController {
+  +resumo(de, ate)
+  +exportar(de, ate)
+}
+
+package "Fachadas" {
+  class SolicitacaoService <<Facade>> {
+    +abrir(alunoId, pedido)
+    +assumir(id, monitorId)
+    +concluir(id, monitorId, observacao)
+    +devolver(id, monitorId)
+    +definirLink(id, usuarioId, link)
+    +cancelar(id, usuarioId)
+    .. Template Method com lambda ..
+    -executar(id, usuarioId, tipo, acao : BiConsumer)
+    -publicar(tipo, solicitacao, autor)
+  }
+  class ConversaService <<Facade>> {
+    +listar(solicitacaoId, usuarioId)
+    +enviar(solicitacaoId, usuarioId, texto)
+  }
+  class RelatorioService <<Facade>> {
+    +resumo(de, ate) : ResumoRelatorio
+    +exportarCsv(de, ate) : ArquivoCsv
+  }
+}
+
+package "Subsistema escondido" {
+  interface SolicitacaoRepository
+  interface UsuarioRepository
+  interface TopicoRepository
+  interface MensagemRepository
+  class Solicitacao <<entidade>>
+  interface ApplicationEventPublisher
+  class Clock
+  class ExportadorCsv
+}
+
+SolicitacaoController --> SolicitacaoService
+SolicitacaoController --> ConversaService
+RelatorioController --> RelatorioService
+
+SolicitacaoService --> SolicitacaoRepository
+SolicitacaoService --> UsuarioRepository
+SolicitacaoService --> TopicoRepository
+SolicitacaoService ..> Solicitacao : aplica a ação
+SolicitacaoService --> ApplicationEventPublisher
+SolicitacaoService --> Clock
+
+ConversaService --> MensagemRepository
+ConversaService --> SolicitacaoRepository
+ConversaService --> ApplicationEventPublisher
+
+RelatorioService --> SolicitacaoRepository
+RelatorioService --> ExportadorCsv
+
+@enduml

@@ -1,0 +1,133 @@
+@startuml classes-padroes
+' Diagrama de classes: onde cada padrão de projeto aparece no código (veja docs/padroes.md).
+' Para regenerar o SVG, veja a seção "Como funciona" do README.
+!include estilo-classes.iuml
+
+title Monitoria MAP: padrões de projeto no código
+
+class SolicitacaoController {
+  +abrir(usuario, pedido)
+  +assumir(usuario, id)
+  +concluir(usuario, id, pedido)
+  +enviarMensagem(usuario, id, pedido)
+}
+
+package "Facade" {
+  class SolicitacaoService <<Facade>> {
+    +abrir(alunoId, pedido)
+    +assumir(id, monitorId)
+    +concluir(id, monitorId, observacao)
+    +devolver(id, monitorId)
+    +cancelar(id, usuarioId)
+    .. Template Method com lambda ..
+    -executar(id, usuarioId, tipo, acao)
+    -publicar(tipo, solicitacao, autor)
+  }
+  class ConversaService <<Facade>> {
+    +listar(id, usuarioId)
+    +enviar(id, usuarioId, texto)
+  }
+  class RelatorioService <<Facade>> {
+    +resumo(de, ate)
+    +exportarCsv(de, ate)
+  }
+}
+
+package "State" {
+  class Solicitacao <<Context>> {
+    -status : StatusSolicitacao
+    -versao : Long
+    +assumir(monitor, agora)
+    +concluir(usuario, observacao, agora)
+    +devolver(usuario, agora)
+    +cancelar(usuario, agora)
+    +enviarMensagem(autor, texto, agora)
+    ~registrarAssuncao(...)
+    ~registrarConclusao(...)
+  }
+  enum StatusSolicitacao {
+    ABERTA
+    EM_ATENDIMENTO
+    CONCLUIDA
+    CANCELADA
+    +estado() : EstadoSolicitacao
+  }
+  interface EstadoSolicitacao <<sealed>> {
+    +assumir(...)
+    +concluir(...)
+    +devolver(...)
+    +cancelar(...)
+    +definirLink(...)
+    +enviarMensagem(...)
+  }
+  class EstadoAberta <<ConcreteState>>
+  class EstadoEmAtendimento <<ConcreteState>>
+  class EstadoConcluida <<ConcreteState>>
+  class EstadoCancelada <<ConcreteState>>
+}
+
+package "Observer" {
+  class SolicitacaoAlteradaEvent <<record>> {
+    tipo : TipoEvento
+    solicitacao : SolicitacaoDTO
+    autor : UsuarioResumoDTO
+  }
+  class MensagemEnviadaEvent <<record>> {
+    mensagem : MensagemDTO
+    alunoId : Long
+    monitorId : Long
+  }
+  class DespachanteDeNotificacoes <<Observer>> {
+    -notificadores : List<Notificador>
+    +aoAlterarSolicitacao(evento)
+    +aoEnviarMensagem(evento)
+    .. depois do commit, @Async ..
+  }
+}
+
+package "Strategy" {
+  interface Notificador <<Strategy>> {
+    +notificar(evento)
+    +notificarMensagem(evento)
+  }
+  class EmailNotificador <<ConcreteStrategy>>
+  class PainelTempoRealNotificador <<ConcreteStrategy>> {
+    +conectar(usuario) : SseEmitter
+  }
+  class "WhatsAppNotificador" as WhatsApp <<futuro>>
+}
+
+package "Repository e DTO" {
+  interface SolicitacaoRepository <<Repository>> {
+    +buscarDetalhada(id)
+    +findByStatusOrderByCriadaEmAsc(status)
+  }
+  class SolicitacaoDTO <<DTO>>
+}
+
+SolicitacaoController --> SolicitacaoService
+SolicitacaoController --> ConversaService
+
+SolicitacaoService --> SolicitacaoRepository
+SolicitacaoService ..> Solicitacao : aplica a ação
+SolicitacaoService ..> SolicitacaoAlteradaEvent : publica
+ConversaService ..> MensagemEnviadaEvent : publica
+RelatorioService --> SolicitacaoRepository
+
+Solicitacao --> StatusSolicitacao
+StatusSolicitacao --> EstadoSolicitacao : uma instância\npor constante
+EstadoSolicitacao <|.. EstadoAberta
+EstadoSolicitacao <|.. EstadoEmAtendimento
+EstadoSolicitacao <|.. EstadoConcluida
+EstadoSolicitacao <|.. EstadoCancelada
+
+SolicitacaoAlteradaEvent --> SolicitacaoDTO
+DespachanteDeNotificacoes ..> SolicitacaoAlteradaEvent : escuta
+DespachanteDeNotificacoes ..> MensagemEnviadaEvent : escuta
+DespachanteDeNotificacoes o--> "*" Notificador
+
+Notificador <|.. EmailNotificador
+Notificador <|.. PainelTempoRealNotificador
+Notificador <|.. WhatsApp
+
+@enduml

@@ -1,0 +1,61 @@
+@startuml padrao-repository-dto
+' Repository e DTO (docs/padroes.md, seção 5).
+!include estilo-classes.iuml
+
+title Repository e DTO: banco de um lado, API do outro
+
+interface "JpaRepository<T, ID>" as JpaRepository <<Spring Data>> {
+  +findById(id)
+  +save(entidade)
+  +saveAndFlush(entidade)
+}
+
+interface SolicitacaoRepository <<Repository>> {
+  .. @EntityGraph: aluno, monitor e tópico juntos (sem N+1) ..
+  +findByStatusOrderByCriadaEmAsc(status)
+  +findByAlunoIdOrderByCriadaEmDesc(alunoId)
+  +findByMonitorIdOrderByAssumidaEmDesc(monitorId)
+  +findDetalhadaById(id) : Optional<Solicitacao>
+  .. default: busca ou responde 404 ..
+  +buscar(id) : Solicitacao
+  +buscarDetalhada(id) : Solicitacao
+}
+
+interface UsuarioRepository <<Repository>> {
+  +findByEmailIgnoreCase(email)
+  +findByPapelInAndAtivoTrue(papeis)
+  +buscar(id) : Usuario
+}
+
+class Solicitacao <<entidade JPA>>
+class Usuario <<entidade JPA>>
+
+class SolicitacaoDTO <<DTO>> <<record>> {
+  +{static} resumo(s : Solicitacao)
+  +{static} detalhe(s : Solicitacao)
+}
+class UsuarioResumoDTO <<DTO>> <<record>> {
+  id : Long
+  nome : String
+  fotoUrl : String
+  +{static} de(usuario : Usuario)
+}
+class MensagemDTO <<DTO>> <<record>> {
+  +{static} de(mensagem)
+}
+
+JpaRepository <|-- SolicitacaoRepository
+JpaRepository <|-- UsuarioRepository
+SolicitacaoRepository ..> Solicitacao : carrega
+UsuarioRepository ..> Usuario : carrega
+SolicitacaoDTO ..> Solicitacao : converte
+UsuarioResumoDTO ..> Usuario : converte
+SolicitacaoDTO --> UsuarioResumoDTO : aluno, monitor
+MensagemDTO --> UsuarioResumoDTO : autor
+
+note bottom of UsuarioResumoDTO
+  Sem e-mail de propósito: outras
+  pessoas só veem nome e foto.
+end note
+
+@enduml

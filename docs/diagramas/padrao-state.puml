@@ -1,0 +1,74 @@
+@startuml padrao-state
+' Padrão State: o ciclo de vida da solicitação (docs/padroes.md, seção 1).
+!include estilo-classes.iuml
+
+title State: cada estado decide o que a solicitação pode fazer
+
+class Solicitacao <<Context>> {
+  -status : StatusSolicitacao
+  +assumir(monitor, agora)
+  +concluir(usuario, observacao, agora)
+  +devolver(usuario, agora)
+  +cancelar(usuario, agora)
+  +definirLink(usuario, link, agora)
+  +enviarMensagem(autor, texto, agora)
+  .. só os estados chamam (package-private) ..
+  ~registrarAssuncao(monitor, agora)
+  ~registrarConclusao(autor, observacao, agora)
+  ~registrarDevolucao(autor, agora)
+  ~registrarCancelamento(autor, agora)
+}
+
+enum StatusSolicitacao {
+  ABERTA
+  EM_ATENDIMENTO
+  CONCLUIDA
+  CANCELADA
+  -estado : EstadoSolicitacao
+  ~estado() : EstadoSolicitacao
+}
+
+interface EstadoSolicitacao <<State>> <<sealed>> {
+  +status() : StatusSolicitacao
+  .. por padrão, toda ação é recusada ..
+  +assumir(solicitacao, monitor, agora)
+  +concluir(solicitacao, usuario, observacao, agora)
+  +devolver(solicitacao, usuario, agora)
+  +cancelar(solicitacao, usuario, agora)
+  +definirLink(solicitacao, usuario, link, agora)
+  +enviarMensagem(solicitacao, autor, texto, agora)
+}
+
+class EstadoAberta <<ConcreteState>> {
+  +assumir(...)
+  +cancelar(...)
+  +definirLink(...)
+  +enviarMensagem(...)
+}
+class EstadoEmAtendimento <<ConcreteState>> {
+  +assumir(...)
+  +concluir(...)
+  +devolver(...)
+  +cancelar(...)
+  +definirLink(...)
+  +enviarMensagem(...)
+}
+class EstadoConcluida <<ConcreteState>>
+class EstadoCancelada <<ConcreteState>>
+
+Solicitacao --> StatusSolicitacao : status
+StatusSolicitacao *--> EstadoSolicitacao : uma instância\npor constante
+EstadoSolicitacao <|.. EstadoAberta
+EstadoSolicitacao <|.. EstadoEmAtendimento
+EstadoSolicitacao <|.. EstadoConcluida
+EstadoSolicitacao <|.. EstadoCancelada
+EstadoAberta ..> Solicitacao : registrar*()
+EstadoEmAtendimento ..> Solicitacao : registrar*()
+
+note bottom of EstadoConcluida
+  Estados finais: não sobrescrevem
+  nada, então toda ação é recusada
+  (TransicaoInvalidaException, 409).
+end note
+
+@enduml

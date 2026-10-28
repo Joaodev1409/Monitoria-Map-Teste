@@ -1,0 +1,18 @@
+' Estilo comum aos diagramas de classes (cores do DESIGN.md).
+!theme plain
+' Layout embutido do PlantUML: não precisa do Graphviz instalado.
+!pragma layout smetana
+
+skinparam shadowing false
+skinparam defaultFontSize 13
+skinparam ArrowColor #665D55
+skinparam ClassBackgroundColor #FFFFFF
+skinparam ClassBorderColor #D3C7B4
+skinparam ClassHeaderBackgroundColor #FAF7F2
+skinparam StereotypeFontColor #0A6B5B
+skinparam PackageBorderColor #D3C7B4
+skinparam PackageBackgroundColor #F3EEE6
+skinparam PackageFontStyle bold
+skinparam NoteBackgroundColor #F6E6C6
+skinparam NoteBorderColor #D3C7B4
+hide empty members
