@@ -1,0 +1,89 @@
+@startuml atividade-atendimento
+' Diagrama de atividade: do login do aluno ao atendimento concluído.
+' Para regenerar o SVG, veja a seção "Como funciona" do README.
+!theme plain
+
+skinparam shadowing false
+skinparam defaultFontSize 13
+skinparam ArrowColor #665D55
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #D3C7B4
+skinparam ActivityDiamondBackgroundColor #FAF7F2
+skinparam ActivityDiamondBorderColor #665D55
+skinparam SwimlaneBorderColor #D3C7B4
+skinparam SwimlaneTitleFontStyle bold
+skinparam NoteBackgroundColor #FAF7F2
+skinparam NoteBorderColor #D3C7B4
+
+title Monitoria MAP: do pedido de ajuda ao atendimento concluído
+
+|Aluno|
+start
+:Entra com a conta Google da UEPB;
+
+|#F3EEE6|Sistema|
+if (Conta @aluno ou @servidor.uepb.edu.br\ngerenciada pela UEPB (claim hd)?) then (não)
+  :Recusa o login\n(Gmail pessoal não entra);
+  stop
+else (sim)
+  :Cria a sessão\n(cookie HttpOnly + CSRF);
+endif
+
+|Aluno|
+:Escolhe o tópico, descreve a dúvida\ne diz se é presencial ou online;
+
+|Sistema|
+if (Já tem pedidos em andamento demais\nou abriu muitos na última hora?) then (sim)
+  :Mostra o aviso\ne não abre o pedido;
+  stop
+else (não)
+  :Registra o pedido;
+endif
+
+repeat
+  :Pedido entra na fila como **ABERTA**; <<#F6E6C6>>
+  :Avisa os monitores;
+  fork
+    :Em tempo real (SSE):\nbip + notificação do navegador;
+  fork again
+    :Por e-mail\n(cópia oculta);
+  end fork
+  if (O que acontece primeiro?) then (o aluno cancela)
+    |Aluno|
+    :Cancela o pedido;
+    |Sistema|
+    :Marca como **CANCELADA**; <<#EBE5DC>>
+    stop
+  else (um monitor assume)
+  endif
+
+  |Monitor|
+  :Assume o pedido da fila;
+
+  |Sistema|
+  :Marca **EM ATENDIMENTO**; <<#DBE6F1>>
+  note right
+    Se dois monitores assumem juntos,
+    só o primeiro leva (lock otimista);
+    o outro recebe 409.
+  end note
+  :Avisa o aluno\n(tempo real + e-mail);
+
+  |Monitor|
+  :Atende o aluno (presencial ou pela chamada)\ne conversa com ele dentro do pedido;
+  backward :Devolve à fila;
+repeat while (Precisa devolver à fila?) is (sim, devolve) not (não)
+
+:Conclui, com uma observação opcional;
+
+|Sistema|
+:Marca **CONCLUÍDA** e guarda\na espera e a duração do atendimento; <<#DBEADC>>
+note right
+  Esses tempos alimentam os
+  relatórios do admin (espera média,
+  duração, por monitor, por tópico).
+end note
+:Avisa o aluno por e-mail\ne deixa a conversa só para leitura;
+stop
+
+@enduml

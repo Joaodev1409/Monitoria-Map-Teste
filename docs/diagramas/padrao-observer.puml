@@ -1,0 +1,54 @@
+@startuml padrao-observer
+' Padrão Observer: avisar sem acoplar (docs/padroes.md, seção 2).
+!include estilo-classes.iuml
+
+title Observer: o serviço publica, o despachante escuta
+
+package "Sujeitos (publicam)" {
+  class SolicitacaoService <<Subject>> {
+    -eventos : ApplicationEventPublisher
+    -publicar(tipo, solicitacao, autor)
+  }
+  class ConversaService <<Subject>> {
+    -eventos : ApplicationEventPublisher
+    +enviar(solicitacaoId, usuarioId, texto)
+  }
+}
+
+interface ApplicationEventPublisher <<Spring>> {
+  +publishEvent(evento)
+}
+
+package "Eventos (DTOs, sem entidades JPA)" {
+  class SolicitacaoAlteradaEvent <<record>> {
+    tipo : TipoEvento
+    solicitacao : SolicitacaoDTO
+    autor : UsuarioResumoDTO
+  }
+  class MensagemEnviadaEvent <<record>> {
+    mensagem : MensagemDTO
+    alunoId : Long
+    monitorId : Long
+  }
+}
+
+class DespachanteDeNotificacoes <<Observer>> {
+  -notificadores : List<Notificador>
+  .. @TransactionalEventListener(AFTER_COMMIT) + @Async ..
+  +aoAlterarSolicitacao(evento : SolicitacaoAlteradaEvent)
+  +aoEnviarMensagem(evento : MensagemEnviadaEvent)
+  -avisarTodos(sobre, aviso)
+}
+
+interface Notificador <<Strategy>>
+
+SolicitacaoService --> ApplicationEventPublisher
+ConversaService --> ApplicationEventPublisher
+SolicitacaoService ..> SolicitacaoAlteradaEvent : cria
+ConversaService ..> MensagemEnviadaEvent : cria
+ApplicationEventPublisher ..> DespachanteDeNotificacoes : entrega depois\ndo commit
+DespachanteDeNotificacoes ..> SolicitacaoAlteradaEvent : escuta
+DespachanteDeNotificacoes ..> MensagemEnviadaEvent : escuta
+DespachanteDeNotificacoes o--> "*" Notificador : repassa a cada canal
+
+@enduml

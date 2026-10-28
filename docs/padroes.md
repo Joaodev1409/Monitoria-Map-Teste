@@ -4,6 +4,12 @@ Este sistema também é material de estudo para a disciplina de **Métodos Avan�
 Cada seção abaixo mostra um problema real do projeto, o padrão escolhido para resolvê-lo e onde ele
 está no código.
 
+Visão geral: cada pacote do diagrama é um padrão, e as setas mostram como eles se ligam. O serviço
+(Facade) aplica a ação na solicitação (State) e publica um evento (Observer), que chega a cada canal de
+notificação (Strategy). A fonte está em [diagramas/classes-padroes.puml](diagramas/classes-padroes.puml).
+
+![Diagrama de classes: padrões de projeto no código](diagramas/classes-padroes.svg)
+
 ---
 
 ## 1. State: o ciclo de vida da solicitação
@@ -52,41 +58,7 @@ stateDiagram-v2
     CANCELADA --> [*]
 ```
 
-```mermaid
-classDiagram
-    class Solicitacao {
-        -StatusSolicitacao status
-        +assumir(monitor, agora)
-        +concluir(usuario, obs, agora)
-        +devolver(usuario, agora)
-        +cancelar(usuario, agora)
-        ~registrarAssuncao(...)
-        ~registrarConclusao(...)
-    }
-    class StatusSolicitacao {
-        <<enum>>
-        ABERTA
-        EM_ATENDIMENTO
-        CONCLUIDA
-        CANCELADA
-        ~estado() EstadoSolicitacao
-    }
-    class EstadoSolicitacao {
-        <<interface>>
-        +assumir()
-        +concluir()
-        +devolver()
-        +cancelar()
-        +definirLink()
-        +enviarMensagem()
-    }
-    Solicitacao --> StatusSolicitacao
-    StatusSolicitacao --> EstadoSolicitacao
-    EstadoSolicitacao <|.. EstadoAberta
-    EstadoSolicitacao <|.. EstadoEmAtendimento
-    EstadoSolicitacao <|.. EstadoConcluida
-    EstadoSolicitacao <|.. EstadoCancelada
-```
+![Diagrama de classes: State](diagramas/padrao-state.svg)
 
 ### Detalhes que valem discutir em aula
 - **Encapsulamento.** Os métodos `registrar*` da `Solicitacao` são *package-private*. Só os estados (no
@@ -148,6 +120,8 @@ eventos.publishEvent(new SolicitacaoAlteradaEvent(TipoEvento.ASSUMIDA, dto, auto
 @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
 public void aoAlterarSolicitacao(SolicitacaoAlteradaEvent evento) { ... }
 ```
+
+![Diagrama de classes: Observer](diagramas/padrao-observer.svg)
 
 ```mermaid
 sequenceDiagram
@@ -214,6 +188,8 @@ O Spring injeta **todas** as implementações numa lista:
 public DespachanteDeNotificacoes(List<Notificador> notificadores) { ... }
 ```
 
+![Diagrama de classes: Strategy](diagramas/padrao-strategy.svg)
+
 ### Aberto/Fechado (o "O" do SOLID) na prática
 Para adicionar o WhatsApp, basta **criar** uma classe nova. **Nenhuma linha existente muda**:
 
@@ -245,6 +221,8 @@ cabeçalhos do download. Buscar as solicitações, ler aluno, monitor e tópico 
 planilha fica atrás da fachada. Numa versão anterior, o próprio controller abria a transação e recebia
 as entidades JPA, e era isso que a fachada deveria esconder.
 
+![Diagrama de classes: Facade](diagramas/padrao-facade.svg)
+
 📁 `solicitacao/SolicitacaoService.java`, `solicitacao/SolicitacaoController.java`
 
 ---
@@ -259,6 +237,8 @@ as entidades JPA, e era isso que a fachada deveria esconder.
   `findById(...).orElseThrow(...)` copiado em cada serviço.
 - **DTO** (`SolicitacaoDTO`, records): a API nunca devolve entidades JPA. Isso evita expor campos
   internos, laços infinitos na serialização e `LazyInitializationException`.
+
+![Diagrama de classes: Repository e DTO](diagramas/padrao-repository-dto.svg)
 
 ---
 
